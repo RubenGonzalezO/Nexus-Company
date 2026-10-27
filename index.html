@@ -456,7 +456,12 @@ input[data-money-input],input[data-decimal-input],[data-pct]{font-variant-numeri
   <p class="nexus-auth-foot">La cuenta es privada. Las contraseñas no se almacenan en el HTML ni se envían a Google Sheets.</p>
  </div>
 </section>
-<iframe id="nexusBackendBridge" class="nexus-bridge-frame" title="Conexión segura con Nexus Company Backend" aria-hidden="true"></iframe>
+<iframe id="nexusBackendBridge" name="nexusBackendBridge" class="nexus-bridge-frame" title="Conexión segura con Nexus Company Backend" aria-hidden="true"></iframe>
+<form id="nexusBackendForm" method="post" target="nexusBackendBridge" hidden aria-hidden="true">
+ <input type="hidden" name="action" id="nexusBridgeAction">
+ <input type="hidden" name="payload" id="nexusBridgePayload">
+ <input type="hidden" name="requestId" id="nexusBridgeRequestId">
+</form>
 
 <div class="app auth-locked" id="nexusApp">
 <aside class="sidebar">
@@ -1065,47 +1070,51 @@ $('importBackupFile')?.addEventListener('change',async e=>{
 loadSettings();updateMonthStatus();compute();renderHistory();saveSettings();
 
 
-/* Puente de autenticación y datos: GitHub Pages conserva la interfaz; Apps Script valida y persiste. */
+/* Puente de autenticación y datos por POST: GitHub Pages conserva toda la interfaz. */
 const NEXUS_BACKEND_URL='https://script.google.com/macros/s/AKfycbyMORP3d1E1-xYareGVkVqD1yQpkMCe98D9OK7ByEQ95iBJqlgOfEbSrF1cd204MHZy/exec';
 const NEXUS_BRIDGE_CHANNEL='NEXUS_COMPANY_BRIDGE_V1';
 const NEXUS_SESSION_KEY='nexusCompanySessionTokenV1';
-var nexusBridgeReady=false,nexusBridgeOrigin='',nexusBridgeWaiters=[],nexusPendingCalls=new Map(),nexusCallCounter=0,nexusBridgeStartupTimer=null,nexusBridgePingTimer=null;
+var nexusPendingCalls=new Map(),nexusCallCounter=0,nexusCallQueue=Promise.resolve();
 var nexusSessionToken='',nexusAuthReady=false,nexusHydrating=false,nexusSyncTimer=null,nexusSyncRunning=false,nexusSyncAgain=false;
 function isTrustedBridgeOrigin(origin){return origin==='https://script.google.com'||origin==='https://script.googleusercontent.com'||origin.endsWith('.googleusercontent.com')}
-function waitForNexusBridge(timeoutMs=30000){
- if(nexusBridgeReady)return Promise.resolve();
+function makeNexusRequestId(){
+ const bytes=new Uint8Array(16);
+ if(window.crypto&&window.crypto.getRandomValues)window.crypto.getRandomValues(bytes);
+ else for(let i=0;i<bytes.length;i++)bytes[i]=Math.floor(Math.random()*256);
+ return 'nc-'+Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('')+'-'+(++nexusCallCounter).toString(36);
+}
+function submitNexusBackendCall(action,args){
  return new Promise((resolve,reject)=>{
-  const waiter=()=>{clearTimeout(timer);resolve()};
-  const timer=setTimeout(()=>{nexusBridgeWaiters=nexusBridgeWaiters.filter(fn=>fn!==waiter);reject(new Error('No se pudo establecer conexión con Google Apps Script. Comprueba la URL de implementación y que hayas publicado la nueva versión.'))},timeoutMs);
-  nexusBridgeWaiters.push(waiter);
+  const form=$('nexusBackendForm'),frame=$('nexusBackendBridge');
+  if(!form||!frame){reject(new Error('Falta el formulario de conexión con Apps Script en el HTML.'));return;}
+  const id=makeNexusRequestId();
+  const timer=setTimeout(()=>{nexusPendingCalls.delete(id);reject(new Error('El servidor de Apps Script no respondió al envío. Comprueba la implementación y los permisos.'));},45000);
+  nexusPendingCalls.set(id,{resolve,reject,timer,action});
+  $('nexusBridgeAction').value=String(action||'');
+  $('nexusBridgePayload').value=JSON.stringify(Array.isArray(args)?args:[]);
+  $('nexusBridgeRequestId').value=id;
+  form.action=NEXUS_BACKEND_URL;
+  form.target='nexusBackendBridge';
+  try{form.submit();}
+  catch(err){clearTimeout(timer);nexusPendingCalls.delete(id);reject(err);}
  });
 }
 function nexusBackendCall(action,args=[]){
- return waitForNexusBridge().then(()=>new Promise((resolve,reject)=>{
-  const id='nc-'+Date.now().toString(36)+'-'+(++nexusCallCounter).toString(36);
-  const timer=setTimeout(()=>{nexusPendingCalls.delete(id);reject(new Error('El servidor no respondió a tiempo. Revisa la implementación de Apps Script y vuelve a intentar.'))},45000);
-  nexusPendingCalls.set(id,{resolve,reject,timer});
-  try{$('nexusBackendBridge').contentWindow.postMessage({channel:NEXUS_BRIDGE_CHANNEL,type:'CALL',id:id,action:action,args:args},nexusBridgeOrigin)}
-  catch(err){clearTimeout(timer);nexusPendingCalls.delete(id);reject(err)}
- }));
+ // Una sola petición a la vez evita que dos respuestas compitan por el mismo iframe oculto.
+ const run=()=>submitNexusBackendCall(action,args);
+ const current=nexusCallQueue.then(run,run);
+ nexusCallQueue=current.then(()=>undefined,()=>undefined);
+ return current;
 }
 window.addEventListener('message',event=>{
- const frame=$('nexusBackendBridge');
- if(!frame||event.source!==frame.contentWindow||!isTrustedBridgeOrigin(event.origin))return;
+ if(!isTrustedBridgeOrigin(event.origin))return;
  const message=event.data;
- if(!message||message.channel!==NEXUS_BRIDGE_CHANNEL)return;
- if(message.type==='READY'){
-  nexusBridgeOrigin=event.origin;nexusBridgeReady=true;
-  if(nexusBridgeStartupTimer){clearTimeout(nexusBridgeStartupTimer);nexusBridgeStartupTimer=null;}
-  if(nexusBridgePingTimer){clearInterval(nexusBridgePingTimer);nexusBridgePingTimer=null;}
-  nexusBridgeWaiters.splice(0).forEach(resolve=>resolve());
-  bootstrapNexusAccess();
-  return;
- }
- if(message.type==='RESPONSE'&&message.id&&nexusPendingCalls.has(message.id)){
-  const pending=nexusPendingCalls.get(message.id);nexusPendingCalls.delete(message.id);clearTimeout(pending.timer);
-  if(message.ok)pending.resolve(message.result);else pending.reject(new Error(message.error||'Falló la operación del servidor.'));
- }
+ if(!message||message.channel!==NEXUS_BRIDGE_CHANNEL||message.type!=='RESPONSE'||typeof message.id!=='string')return;
+ const pending=nexusPendingCalls.get(message.id);
+ if(!pending)return;
+ nexusPendingCalls.delete(message.id);clearTimeout(pending.timer);
+ if(message.ok)pending.resolve(message.result);
+ else pending.reject(new Error(message.error||'Falló la operación de Apps Script.'));
 });
 function setAuthMessage(text,isError=false){const el=$('nexusAuthMessage');if(el){el.textContent=text||'';el.style.color=isError?'#ffbdad':'#ffdda0'}}
 function setAuthConnection(text,good=false){const textEl=$('nexusAuthConnectionText');if(textEl)textEl.textContent=text;const dot=$('nexusAuthConnectionText')?.previousElementSibling;if(dot)dot.style.background=good?'#4de0a1':'#e8b45b'}
@@ -1232,28 +1241,11 @@ async function closeNexusSession(){
  const status=await nexusBackendCall('authStatus').catch(()=>({configured:true}));showNexusAuthMode(!!status.configured);setAuthMessage('Sesión cerrada.');
 }
 $('nexusLogoutButton').addEventListener('click',closeNexusSession);
-/* Arranque robusto: mostrar el login primero y comprobar el puente sin dejar la pantalla bloqueada. */
-function startNexusBridgeHandshake(){
- const frame=$('nexusBackendBridge');
- if(!frame)return;
- const sendHello=()=>{try{frame.contentWindow.postMessage({channel:NEXUS_BRIDGE_CHANNEL,type:'HELLO'},'*')}catch(e){}};
- sendHello();
- let attempts=0;
- nexusBridgePingTimer=setInterval(()=>{
-  if(nexusBridgeReady){clearInterval(nexusBridgePingTimer);nexusBridgePingTimer=null;return;}
-  attempts++;sendHello();
-  if(attempts>=12){clearInterval(nexusBridgePingTimer);nexusBridgePingTimer=null;}
- },750);
-}
+/* Arranque: el formulario oculto envía POST al backend y recibe la respuesta por postMessage. */
 const nexusBridgeFrame=$('nexusBackendBridge');
 if(nexusBridgeFrame){
- nexusBridgeFrame.addEventListener('load',startNexusBridgeHandshake);
- nexusBridgeStartupTimer=setTimeout(()=>{
-  if(nexusBridgeReady)return;
-  setAuthConnection('Sin conexión con el servidor',false);
-  setAuthMessage('No hubo respuesta del backend de Apps Script. Verifica que Code.gs esté actualizado y que la implementación web publique la versión nueva.',true);
- },12000);
- nexusBridgeFrame.src=NEXUS_BACKEND_URL+'?bridge=1';
+ nexusBridgeFrame.name='nexusBackendBridge';
+ bootstrapNexusAccess();
 }
 /* Al abrir GitHub, la sesión del navegador se valida de nuevo antes de revelar la plataforma. */
 
