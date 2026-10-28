@@ -1014,6 +1014,7 @@ async function saveMonth(){
  const arr=getHistory().filter(r=>r.month!==month);arr.push(row);
  // Conserva siempre una copia local antes de intentar la escritura remota.
  localStorage.setItem('miniEmpresaHistoryV2',JSON.stringify(arr));
+ try{localStorage.setItem('nexusCompanyMigrationDecision_v1','pending')}catch(e){}
  updateMonthStatus();renderHistory();renderPeriodDisplay();
  const b=$('saveMonth'),original=b.innerHTML;b.disabled=true;b.textContent='Guardando y verificando…';
  try{
@@ -1022,6 +1023,7 @@ async function saveMonth(){
   if(!result||result.ok!==true||result.verified!==true)throw new Error('El servidor no confirmó la lectura posterior del registro mensual.');
   b.innerHTML='<i class="fa-solid fa-check" aria-hidden="true"></i> Mes guardado y verificado';
  }catch(err){
+  try{localStorage.setItem('nexusCompanyMigrationDecision_v1','pending')}catch(e){}
   b.innerHTML='<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> No confirmado en la base';
   alert('El registro quedó conservado en este navegador, pero NO se confirmó en Google Sheets. No cierres ni borres los datos locales. Detalle: '+String(err.message||err));
  }finally{b.disabled=false;setTimeout(()=>{if(b.isConnected)b.innerHTML=original},3500)}
@@ -1120,9 +1122,8 @@ $('importBackupFile')?.addEventListener('change',async e=>{
 <script>
 (function(){
  'use strict';
- const NEXUS_CHANNEL='NEXUS_COMPANY_BRIDGE_V1';
- const NEXUS_REQUIRED_BACKEND_VERSION='NC-POST-NONCE-MONTH-VERIFY-2026-10-27-02';
- // IMPORTANTE: luego de desplegar el proyecto NUEVO, pega aquí la URL /exec que Google te entregue.
+ const NEXUS_REQUIRED_BACKEND_VERSION='NC-GITHUB-SHEETS-NONCE-2026-10-27-03';
+ // Mantén la URL /exec de la implementación web existente; publica una nueva versión del mismo proyecto Apps Script.
  const NEXUS_WEB_APP_URL='https://script.google.com/macros/s/AKfycbyNWaYHK4QXUSYmBPAWPEMCn-Iy2fGc71sXTlSyd5SJxwe-fZqLos-jbXPiw1GmLX3DQQ/exec';
  const loginForm=document.getElementById('nexusLoginForm');
  const setupForm=document.getElementById('nexusOwnerSetupForm');
@@ -1131,8 +1132,9 @@ $('importBackupFile')?.addEventListener('change',async e=>{
  const authIntro=document.getElementById('nexusAuthIntro');
  const dbStatus=document.getElementById('nexusDbStatus');
  const dbStatusText=document.getElementById('nexusDbStatusText');
- let pending=new Map(), requestCounter=0;
+ let requestCounter=0;
  let sessionToken='', remoteReady=false, syncTimer=null, syncInFlight=null, retryTimer=null, retryCount=0;
+ let monthSaveInFlight=null;
  let nexusSaveToast=null, nexusSaveToastTimer=null;
  function showSaveToast(message,kind){
   if(!nexusSaveToast){nexusSaveToast=document.createElement('div');nexusSaveToast.id='nexusSaveToast';nexusSaveToast.setAttribute('role','status');nexusSaveToast.setAttribute('aria-live','polite');nexusSaveToast.style.cssText='position:fixed;right:16px;bottom:16px;z-index:100000;max-width:min(460px,calc(100vw - 32px));padding:12px 16px;border-radius:12px;font:600 13px/1.45 system-ui,sans-serif;color:#effff7;box-shadow:0 10px 32px #0008;display:none';document.body.appendChild(nexusSaveToast)}
@@ -1193,80 +1195,70 @@ $('importBackupFile')?.addEventListener('change',async e=>{
   if(dbStatusText)dbStatusText.textContent=String(text||'');
   if(dbStatus){dbStatus.classList.toggle('is-connected',kind==='connected');dbStatus.classList.toggle('is-error',kind==='error')}
  }
- function isAllowedBridgeOrigin(origin){
-  try{const u=new URL(origin);return u.protocol==='https:'&&(u.hostname==='script.google.com'||u.hostname==='googleusercontent.com'||u.hostname.endsWith('.googleusercontent.com'))}catch(e){return false}
+  function isAllowedBridgeOrigin(origin){
+  try{
+   const u=new URL(origin);
+   return u.protocol==='https:' && (u.hostname==='script.google.com' || u.hostname==='googleusercontent.com' || u.hostname.endsWith('.googleusercontent.com'));
+  }catch(e){return false}
+ }
+ function createRequestNonce(){
+  let random='';
+  try{
+   if(window.crypto&&typeof window.crypto.randomUUID==='function')random=window.crypto.randomUUID().replace(/-/g,'');
+   else if(window.crypto&&typeof window.crypto.getRandomValues==='function'){
+    const bytes=new Uint8Array(16);window.crypto.getRandomValues(bytes);random=Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+   }
+  }catch(e){}
+  if(!random)random=Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);
+  return 'nx_'+Date.now().toString(36)+'_'+(++requestCounter).toString(36)+'_'+random;
  }
  function cleanRequest(entry){
   if(!entry)return;
   if(entry.timer)clearTimeout(entry.timer);
+  window.removeEventListener('message',entry.listener);
   if(entry.form&&entry.form.isConnected)entry.form.remove();
   if(entry.frame&&entry.frame.isConnected)entry.frame.remove();
- }
- window.addEventListener('message',function(event){
-  if(!isAllowedBridgeOrigin(event.origin))return;
-  let data=event.data;
-  if(typeof data==='string'){try{data=JSON.parse(data)}catch(e){return}}
-  if(!data||typeof data!=='object')return;
-
-  // Contrato del puente validado en la página de referencia: nonce + result.success.
-  if(data.type==='nexus-api-response'&&typeof data.nonce==='string'){
-   const waiter=pending.get(data.nonce);if(!waiter)return;
-   pending.delete(data.nonce);cleanRequest(waiter);
-   const envelope=data.result&&typeof data.result==='object'?data.result:{};
-   if(envelope.success===true)waiter.resolve(envelope.data);
-   else waiter.reject(new Error(String(envelope.error||'Apps Script rechazó la solicitud.')));
-   return;
-  }
-
-  // Compatibilidad temporal con el formato de respuesta usado por la versión anterior.
-  if(data.channel!==NEXUS_CHANNEL||data.type!=='RESPONSE'||typeof data.id!=='string')return;
-  const waiter=pending.get(data.id);if(!waiter)return;
-  pending.delete(data.id);cleanRequest(waiter);
-  if(data.ok)waiter.resolve(data.result);
-  else waiter.reject(new Error(String(data.error||'La solicitud fue rechazada por Apps Script.')));
- });
- function backendFields(action,args){
-  const a=Array.isArray(args)?args:[];
-  switch(String(action)){
-   case 'authStatus': return {};
-   case 'createOwner': return {setupCode:a[0]||'',ownerUsername:a[1]||'',newPassword:a[2]||'',confirmPassword:a[3]||''};
-   case 'login': return {username:a[0]||'',password:a[1]||''};
-   case 'verify':
-   case 'logout':
-   case 'loadFinancial': return {token:a[0]||''};
-   case 'saveFinancial': return {token:a[0]||'',state:JSON.stringify(a[1]&&typeof a[1]==='object'?a[1]:{})};
-   case 'saveMonth': return {token:a[0]||'',record:JSON.stringify(a[1]&&typeof a[1]==='object'?a[1]:{}),settings:JSON.stringify(a[2]&&typeof a[2]==='object'?a[2]:{}),preferences:JSON.stringify(a[3]&&typeof a[3]==='object'?a[3]:{})};
-   default: throw new Error('Operación no reconocida: '+String(action));
-  }
  }
  function callBackend(action,args,timeoutMs){
   return new Promise((resolve,reject)=>{
    if(!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(NEXUS_WEB_APP_URL)){
     reject(new Error('La URL de implementación de Apps Script no está configurada.'));return;
    }
-   const id='nc-'+Date.now().toString(36)+'-'+(++requestCounter).toString(36)+'-'+Math.random().toString(36).slice(2,12);
-   const frameName='nexus-request-'+id;
+   const nonce=createRequestNonce();
+   const frameName='nexus_api_'+nonce;
    const requestFrame=document.createElement('iframe');
-   requestFrame.name=frameName;requestFrame.title='Solicitud segura a Nexus Company Backend';
+   requestFrame.name=frameName;requestFrame.title='Solicitud segura a Nexus Company API';
    requestFrame.setAttribute('aria-hidden','true');requestFrame.tabIndex=-1;
    requestFrame.style.cssText='position:fixed;left:-10000px;top:-10000px;width:1px;height:1px;border:0;opacity:0;pointer-events:none';
-   const form=document.createElement('form');form.method='POST';form.action=NEXUS_WEB_APP_URL;form.target=frameName;form.enctype='application/x-www-form-urlencoded';form.acceptCharset='UTF-8';form.style.display='none';
-   const fields=Object.assign({action:String(action),nonce:id},backendFields(action,args));
+   const form=document.createElement('form');form.method='POST';form.action=NEXUS_WEB_APP_URL;form.target=frameName;
+   form.enctype='application/x-www-form-urlencoded';form.acceptCharset='UTF-8';form.style.display='none';
+   const fields={action:String(action),nonce:nonce,args:JSON.stringify(Array.isArray(args)?args:[])};
    Object.entries(fields).forEach(([name,value])=>{
-    const input=document.createElement('input');input.type='hidden';input.name=name;
-    input.value=typeof value==='string'?value:String(value==null?'':value);
-    form.appendChild(input);
+    const input=document.createElement('input');input.type='hidden';input.name=name;input.value=String(value);form.appendChild(input);
    });
+   let finished=false;
+   const entry={resolve,reject,frame:requestFrame,form,timer:null,listener:null};
+   const finish=(error,value)=>{
+    if(finished)return;
+    finished=true;cleanRequest(entry);
+    if(error)reject(error);else resolve(value);
+   };
+   entry.listener=function(event){
+    if(!isAllowedBridgeOrigin(event.origin))return;
+    let message=event.data;
+    if(typeof message==='string'){
+     try{message=JSON.parse(message)}catch(e){return}
+    }
+    if(!message||message.type!=='nexus-api-response'||message.nonce!==nonce)return;
+    const envelope=message.result||{};
+    if(envelope.success===true){finish(null,envelope.data);return}
+    finish(new Error(String(envelope.error||'Google Apps Script no pudo completar la operación.')));
+   };
+   window.addEventListener('message',entry.listener);
    const timeout=Number(timeoutMs)||26000;
-   const entry={resolve:resolve,reject:reject,frame:requestFrame,form:form,timer:null};
-   entry.timer=setTimeout(()=>{
-    if(!pending.has(id))return;
-    pending.delete(id);cleanRequest(entry);
-    reject(new Error('Apps Script no respondió a la operación "'+action+'". Comprueba que implementaste la nueva versión de Code.gs como aplicación web y que el acceso está configurado para ejecutarse con tu cuenta.'));
-   },timeout);
-   pending.set(id,entry);
+   entry.timer=setTimeout(()=>finish(new Error('Apps Script no respondió a "'+action+'" dentro del tiempo esperado. Comprueba la implementación web y su acceso.')),timeout);
    document.body.appendChild(requestFrame);document.body.appendChild(form);
-   try{form.submit()}catch(error){pending.delete(id);cleanRequest(entry);reject(new Error('No se pudo enviar la solicitud POST a Apps Script: '+error.message))}
+   try{form.submit()}catch(error){finish(new Error('No se pudo enviar la solicitud a Apps Script: '+String(error&&error.message||error)))}
   });
  }
   function parseStored(key,fallback){try{const v=JSON.parse(localStorage.getItem(key)||'null');return v==null?fallback:v}catch(e){return fallback}}
@@ -1287,36 +1279,53 @@ $('importBackupFile')?.addEventListener('change',async e=>{
  function buildSyncPayload(){return {settings:parseStored('miniEmpresaSettingsV2',{}),preferences:getPreferences(),history:typeof getHistory==='function'?getHistory():parseStored('miniEmpresaHistoryV2',[]),deletedMonths:readPendingMonthDeletes()}}
  async function saveNexusMonthRecord(record){
   if(!remoteReady||!sessionToken)throw new Error('La sesión todavía no está lista para guardar en Google Sheets.');
-  if(!record||typeof record!=='object'||!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(record.month||'')))throw new Error('El registro mensual no tiene un mes válido.');
-  if(syncTimer){clearTimeout(syncTimer);syncTimer=null}
-  // Evita que una sincronización que ya empezó compita con la operación dedicada.
-  if(syncInFlight){try{await syncInFlight}catch(e){}}
-  if(syncTimer){clearTimeout(syncTimer);syncTimer=null}
-  const token=sessionToken;
-  const settings=parseStored('miniEmpresaSettingsV2',{});
-  const preferences=getPreferences();
-  setDbStatus('Guardando y verificando el mes '+record.month+'…','pending');
-  try{
-   const result=await callBackend('saveMonth',[token,record,settings,preferences],30000);
-   if(!result||result.ok!==true||result.verified!==true||String(result.month)!==String(record.month)){
-    throw new Error(result&&result.message?result.message:'El backend no devolvió una verificación confirmada del mes guardado.');
-   }
-   clearSyncedMonthDeletes([record.month]);
-   try{localStorage.setItem(MIGRATION_DECISION_KEY,'saved')}catch(e){}
-   retryCount=0;
-   setDbStatus('Mes '+record.month+' guardado y verificado · Nexus Company DB','connected');
-   showSaveToast('Mes '+record.month+' guardado y comprobado en Google Sheets.','success');
-   return result;
-  }catch(err){
+  if(!record||typeof record!=='object'||Array.isArray(record)||!/^[0-9]{4}-(0[1-9]|1[0-2])$/.test(String(record.month||'')))throw new Error('El registro mensual no tiene un mes válido.');
+  if(monthSaveInFlight)return monthSaveInFlight;
+  const snapshot=JSON.parse(JSON.stringify(record));
+  const operation=(async()=>{
+   if(syncTimer){clearTimeout(syncTimer);syncTimer=null}
+   if(retryTimer){clearTimeout(retryTimer);retryTimer=null}
+   // Todas las escrituras esperan a que termine la anterior.
+   if(syncInFlight){try{await syncInFlight}catch(e){}}
+   if(!remoteReady||!sessionToken)throw new Error('La sesión terminó antes de confirmar el guardado. Inicia sesión de nuevo.');
+   const token=sessionToken;
+   const settings=parseStored('miniEmpresaSettingsV2',{});
+   const preferences=getPreferences();
    try{localStorage.setItem(MIGRATION_DECISION_KEY,'pending')}catch(e){}
-   setDbStatus('No se pudo verificar el guardado mensual','error');
-   showSaveToast('Mes '+record.month+' conservado en este dispositivo; Google Sheets no lo confirmó. Se programará otro intento. '+String(err.message||err),'error');
-   // El snapshot ya está en miniEmpresaHistoryV2. Reintenta enviando el estado completo;
-   // el backend hace upsert por mes y no borra los otros registros que ya existen.
-   scheduleNexusSync(2500);
-   throw err;
-  }
+   setDbStatus('Guardando y verificando el mes '+snapshot.month+'…','pending');
+   const request=callBackend('saveMonth',[token,snapshot,settings,preferences],35000);
+   syncInFlight=request;
+   try{
+    const result=await request;
+    if(!result||result.ok!==true||result.verified!==true||String(result.month)!==String(snapshot.month)){
+     throw new Error(result&&result.message?result.message:'El servidor no confirmó la lectura posterior del registro mensual.');
+    }
+    clearSyncedMonthDeletes([snapshot.month]);
+    try{localStorage.setItem(MIGRATION_DECISION_KEY,'saved')}catch(e){}
+    retryCount=0;
+    if(retryTimer){clearTimeout(retryTimer);retryTimer=null}
+    setDbStatus('Mes '+snapshot.month+' guardado y verificado · Nexus Company DB','connected');
+    showSaveToast('Mes '+snapshot.month+' guardado y comprobado en Google Sheets.','success');
+    return result;
+   }catch(err){
+    try{localStorage.setItem(MIGRATION_DECISION_KEY,'pending')}catch(e){}
+    setDbStatus('No se pudo verificar el guardado mensual','error');
+    showSaveToast('El mes '+snapshot.month+' sigue pendiente de confirmación en Google Sheets. Se conservaron los datos locales. '+String(err.message||err),'error');
+    // Reintenta el guardado mensual dedicado (idempotente) con verificación posterior.
+    if(remoteReady&&sessionToken&&retryCount<5&&!retryTimer){
+     const delay=Math.min(30000,1800*Math.pow(2,retryCount));retryCount++;
+     retryTimer=setTimeout(()=>{retryTimer=null;saveNexusMonthRecord(snapshot).catch(()=>{})},delay);
+    }
+    throw err;
+   }finally{
+    if(syncInFlight===request)syncInFlight=null;
+   }
+  })();
+  monthSaveInFlight=operation;
+  try{return await operation}
+  finally{if(monthSaveInFlight===operation)monthSaveInFlight=null}
  }
+
  async function syncNexusFinancialState(throwOnError){
   if(!remoteReady||!sessionToken){
    const err=new Error('La sesión todavía no está lista para guardar en Google Sheets.');
@@ -1481,7 +1490,7 @@ $('importBackupFile')?.addEventListener('change',async e=>{
   }catch(err){
    // Si Google no responde, revela el formulario con el diagnóstico en lugar de dejar el cargador fijo.
    switchToLogin(true);
-   setAuthMessage('No se recibió respuesta de Apps Script mediante POST. El formulario está visible, pero el registro necesita que el backend responda. Detalle: '+err.message,'error');
+   setAuthMessage('No se recibió respuesta del API de Apps Script mediante POST con nonce. El formulario está visible, pero el registro necesita que el backend responda. Detalle: '+err.message,'error');
    endBootScreen();
   }
  }
