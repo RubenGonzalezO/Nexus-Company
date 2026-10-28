@@ -424,21 +424,21 @@ body.nexus-authenticated #nexusLoginScreen{display:none!important}
 <div class="nexus-auth-screen" id="nexusLoginScreen">
  <section class="nexus-auth-card" aria-labelledby="nexusAuthTitle">
   <div class="nexus-auth-brand"><span class="nexus-auth-logo" aria-hidden="true">N</span><span><strong>Nexus Company</strong><small>Acceso privado a la plataforma financiera</small></span></div>
-  <h1 id="nexusAuthTitle">Iniciar sesión</h1>
-  <p class="nexus-auth-copy" id="nexusAuthIntro">Introduce tus credenciales para acceder al panel financiero.</p>
-  <form id="nexusLoginForm" class="nexus-auth-form" autocomplete="on">
-   <div class="nexus-auth-field"><label for="nexusLoginUsername">Usuario</label><input id="nexusLoginUsername" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" value="Ruben" required maxlength="40"></div>
+  <h1 id="nexusAuthTitle">Crear cuenta propietaria</h1>
+  <p class="nexus-auth-copy" id="nexusAuthIntro">Configura la única cuenta autorizada. Necesitas el código de alta generado desde Apps Script.</p>
+  <form id="nexusLoginForm" class="nexus-auth-form" hidden autocomplete="on">
+   <div class="nexus-auth-field"><label for="nexusLoginUsername">Usuario</label><input id="nexusLoginUsername" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Tu usuario" required maxlength="40"></div>
    <div class="nexus-auth-field"><label for="nexusLoginPassword">Contraseña</label><input id="nexusLoginPassword" name="password" type="password" autocomplete="current-password" required minlength="1"></div>
    <button class="btn btn-primary nexus-auth-submit" id="nexusLoginSubmit" type="submit"><i class="fa-solid fa-lock" aria-hidden="true"></i> Entrar a Nexus Company</button>
   </form>
-  <form id="nexusOwnerSetupForm" class="nexus-auth-form" hidden autocomplete="off">
+  <form id="nexusOwnerSetupForm" class="nexus-auth-form" autocomplete="off">
    <div class="nexus-auth-field"><label for="nexusSetupCode">Código de alta única</label><input id="nexusSetupCode" name="setupCode" type="password" autocomplete="off" required></div>
    <div class="nexus-auth-field"><label for="nexusOwnerUsername">Usuario propietario</label><input id="nexusOwnerUsername" name="ownerUsername" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required minlength="3" maxlength="40"></div>
    <div class="nexus-auth-field"><label for="nexusOwnerPassword">Contraseña (mínimo 14 caracteres)</label><input id="nexusOwnerPassword" name="newPassword" type="password" autocomplete="new-password" required minlength="14"></div>
    <div class="nexus-auth-field"><label for="nexusOwnerPasswordConfirm">Confirmar contraseña</label><input id="nexusOwnerPasswordConfirm" name="confirmPassword" type="password" autocomplete="new-password" required minlength="14"></div>
    <button class="btn btn-primary nexus-auth-submit" id="nexusOwnerSetupSubmit" type="submit"><i class="fa-solid fa-user-shield" aria-hidden="true"></i> Crear cuenta propietaria</button>
   </form>
-  <div id="nexusAuthMessage" class="nexus-auth-message" role="status" aria-live="polite">Preparando conexión segura…</div>
+  <div id="nexusAuthMessage" class="nexus-auth-message" role="status" aria-live="polite">El formulario de alta está disponible. Comprobando conexión con el servidor…</div>
   <p class="nexus-auth-foot">Acceso de propietario único. <strong>El registro público se deshabilita automáticamente después del alta inicial.</strong></p>
  </section>
 </div>
@@ -1240,8 +1240,10 @@ $('importBackupFile')?.addEventListener('change',async e=>{
   return true;
  }
  async function startAuth(){
-  switchToLogin(false);
-  setAuthMessage('Comprobando la conexión con el servidor…');
+  // En una instalación nueva, el alta se muestra desde el primer render.
+  // Si el backend confirma que ya hay propietario, cambiamos a inicio de sesión.
+  switchToLogin(true);
+  setAuthMessage('Formulario de alta disponible. Comprobando la conexión con el servidor…');
   const savedToken=sessionStorage.getItem('nexusCompanyToken');
   try{
    await waitForBridge(20000);
@@ -1258,7 +1260,10 @@ $('importBackupFile')?.addEventListener('change',async e=>{
     setAuthMessage('La cuenta propietaria todavía no existe. Genera el código de alta desde Apps Script y completa este formulario.');
    }
   }catch(err){
-   setAuthMessage('No se pudo contactar el servidor de Apps Script. El formulario permanece disponible, pero el acceso no puede validarse hasta que el backend responda. Detalle: '+err.message,'error');
+   // En una instalación nueva, no ocultar el formulario de alta si el puente tarda o no responde.
+   // El backend sigue siendo quien valida el código y bloquea cualquier alta si ya hay propietario.
+   switchToLogin(true);
+   setAuthMessage('No se pudo establecer conexión con Apps Script. El formulario sí está visible, pero no puede crear la cuenta hasta que el puente responda. Revisa la implementación publicada y su acceso. Detalle: '+err.message,'error');
   }
  }
  loginForm.addEventListener('submit',async function(e){
@@ -1310,8 +1315,9 @@ $('importBackupFile')?.addEventListener('change',async e=>{
   startPings();
   startAuth();
  }else{
+  switchToLogin(true);
   setDbStatus('Falta configurar Apps Script','error');
-  setAuthMessage('Antes de publicar esta página, reemplaza NEXUS_WEB_APP_URL por la URL /exec que genere el proyecto nuevo Nexus Company Backend.','error');
+  setAuthMessage('El formulario de alta inicial está visible, pero falta configurar la URL /exec de Apps Script.','error');
  }
 
  // Expone las funciones al primer script de la plataforma para sincronizar el estado.
