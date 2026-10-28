@@ -396,74 +396,55 @@ input[data-money-input],input[data-decimal-input],[data-pct]{font-variant-numeri
 }
 
 
-/* Acceso inicial: el panel solo se revela después de una sesión validada por Apps Script. */
-[hidden]{display:none!important}
-.auth-locked{display:none!important}
-.nexus-auth-screen{min-height:100vh;display:grid;place-items:center;padding:24px 16px;background:radial-gradient(ellipse at 50% 0%,rgba(77,224,161,.12),transparent 55%),#050b08;color:#edf8f1}
-.nexus-auth-card{width:min(100%,430px);padding:clamp(22px,5vw,34px);border:1px solid #254b37;border-radius:24px;background:linear-gradient(155deg,#10231a,#09140e);box-shadow:0 24px 80px rgba(0,0,0,.48)}
-.nexus-auth-brand{display:grid;justify-items:center;text-align:center;margin-bottom:25px;gap:10px}
-.nexus-auth-logo{width:62px;height:62px;display:grid;place-items:center;border-radius:18px;background:linear-gradient(145deg,#d9ffea,#4de0a1);color:#052016;font-size:43px;line-height:1;font-weight:950;letter-spacing:-.09em;padding-right:4px;box-shadow:0 8px 30px rgba(77,224,161,.16)}
-.nexus-auth-brand h1{margin:0;font-size:25px;letter-spacing:-.04em;font-weight:900}
-.nexus-auth-brand p{margin:0;max-width:310px;color:#9fb9aa;font-size:12px;line-height:1.5}
-.nexus-auth-form{display:grid;gap:14px}
-.nexus-auth-field{display:grid;gap:6px;min-width:0}
-.nexus-auth-field label{font-size:12px;font-weight:800;color:#d9ebe0}
-.nexus-auth-field input{width:100%;min-width:0;border:1px solid #315641;border-radius:12px;background:#07130c;color:#f1fbf4;padding:13px 14px;outline:none}
-.nexus-auth-field input::placeholder{color:#728b7b}
-.nexus-auth-field input:focus{border-color:#4de0a1;box-shadow:0 0 0 3px rgba(77,224,161,.16)}
-.nexus-auth-submit{width:100%;border:0;border-radius:12px;background:#4de0a1;color:#052016;padding:13px 15px;font-weight:900;font-size:14px;display:flex;align-items:center;justify-content:center;gap:9px;margin-top:4px}
-.nexus-auth-submit:hover{background:#7af0ba}
-.nexus-auth-submit:disabled{opacity:.6;cursor:wait}
-.nexus-auth-message{min-height:20px;margin:13px 0 0;font-size:12px;line-height:1.5;color:#ffdda0;overflow-wrap:anywhere}
-.nexus-auth-connection{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:14px;color:#91ad9d;font-size:11px;text-align:center}
-.nexus-auth-connection .dot{width:7px;height:7px;border-radius:50%;background:#e8b45b;flex:0 0 7px}
-.nexus-auth-foot{margin:20px 0 0;padding-top:15px;border-top:1px solid #203d2d;color:#789383;font-size:10px;line-height:1.5;text-align:center}
-.nexus-connection-status{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:-11px 0 18px;padding:9px 11px;border:1px solid #28543d;border-radius:12px;background:#0d1d14;color:#bdebd0;font-size:11px;min-width:0}
-.nexus-connection-status span{min-width:0;overflow-wrap:anywhere}
-.nexus-connection-status .connected-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#4de0a1;margin-right:7px}
-.nexus-logout-btn{flex:0 0 auto;border:1px solid #365b46;border-radius:9px;background:#142a1e;color:#eaf8ef;padding:7px 10px;font-size:11px;font-weight:800}
-.nexus-logout-btn:hover{border-color:#4de0a1;color:#4de0a1}
-.nexus-bridge-frame{position:fixed;left:-20px;top:-20px;width:1px;height:1px;opacity:0;pointer-events:none;border:0}
-@media(max-width:420px){.nexus-auth-screen{padding:14px 10px}.nexus-auth-card{border-radius:18px;padding:23px 18px}.nexus-auth-brand h1{font-size:23px}.nexus-connection-status{align-items:flex-start;flex-direction:column}.nexus-logout-btn{width:100%}}
+/* Acceso privado: GitHub aloja esta página; Apps Script solo autentica y guarda datos. */
+.nexus-auth-screen{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(ellipse at 50% 0%,rgba(77,224,161,.12),transparent 48%),#050c09;color:#edf8f1}
+.nexus-auth-card{width:min(100%,430px);padding:clamp(22px,5vw,34px);border:1px solid #294b39;border-radius:24px;background:linear-gradient(155deg,#10251a,#0a1710 72%);box-shadow:0 24px 80px rgba(0,0,0,.44)}
+.nexus-auth-brand{display:flex;align-items:center;gap:13px;margin-bottom:24px}
+.nexus-auth-logo{width:52px;height:52px;flex:0 0 52px;display:grid;place-items:center;border-radius:16px;background:linear-gradient(145deg,#d9ffea,#4de0a1);color:#062016;font:950 37px/1 Inter,system-ui,sans-serif;letter-spacing:-.09em;padding-right:3px;box-shadow:0 8px 24px rgba(77,224,161,.16)}
+.nexus-auth-brand strong{display:block;font-size:19px;font-weight:900;letter-spacing:-.03em}.nexus-auth-brand small{display:block;margin-top:3px;color:#9eb9aa;font-size:12px}
+.nexus-auth-card h1{font-size:clamp(23px,5vw,28px);line-height:1.15;letter-spacing:-.04em;margin:0 0 8px;color:#f0fff6}
+.nexus-auth-copy{color:#a8c2b2;font-size:13px;line-height:1.55;margin:0 0 20px}
+.nexus-auth-form{display:grid;gap:13px}.nexus-auth-form[hidden]{display:none!important}.nexus-auth-field{display:grid;gap:6px}.nexus-auth-field label{font-size:12px;font-weight:800;color:#d9e9df}.nexus-auth-field input{width:100%;min-width:0;height:46px;padding:11px 13px;border:1px solid #315440;border-radius:11px;background:#07140f;color:#eff8f2;outline:none}.nexus-auth-field input:focus{border-color:#4de0a1;box-shadow:0 0 0 3px rgba(77,224,161,.15)}.nexus-auth-submit{width:100%;min-height:47px;margin-top:3px}.nexus-auth-message{margin:16px 0 0;padding:11px 12px;border-radius:11px;border:1px solid #294b39;background:#0a1b12;color:#b9d9c7;font-size:12px;line-height:1.45;overflow-wrap:anywhere}.nexus-auth-message.is-error{border-color:#743b37;background:#2b1715;color:#ffcbc5}.nexus-auth-message.is-success{border-color:#2f704d;background:#10271b;color:#bdf8d5}.nexus-auth-foot{margin:16px 0 0;color:#779585;font-size:11px;line-height:1.5}.nexus-auth-foot strong{color:#b6d5c3}
+.nexus-bridge-frame{position:fixed;width:2px;height:2px;left:-10px;bottom:-10px;border:0;opacity:.01;pointer-events:none}
+body:not(.nexus-authenticated) .app,body:not(.nexus-authenticated) .mobile-nav{display:none!important}
+body.nexus-authenticated #nexusLoginScreen{display:none!important}
+.nexus-db-status{display:flex;align-items:center;gap:8px;margin:0 0 14px;padding:8px 11px;border:1px solid #294b39;border-radius:11px;background:#0c1c13;color:#a9c7b6;font-size:11px;line-height:1.35;overflow-wrap:anywhere}
+.nexus-db-status .status-dot{width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:#f2bd5f}
+.nexus-db-status.is-connected .status-dot{background:#4de0a1;box-shadow:0 0 0 3px rgba(77,224,161,.12)}
+.nexus-db-status.is-error .status-dot{background:#ff8176}
+.header-icon-btn{width:44px;height:44px;flex:0 0 44px;display:grid;place-items:center;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--green);font-size:17px;box-shadow:var(--shadow)}
+.header-icon-btn:hover{border-color:var(--green)}
+.top-actions{gap:7px}
+@media(max-width:560px){.nexus-auth-screen{padding:15px}.nexus-auth-card{padding:23px 19px;border-radius:20px}.nexus-auth-logo{width:46px;height:46px;flex-basis:46px;font-size:33px}.topbar>div:first-child{max-width:calc(100% - 100px)}.top-actions{width:auto;flex:0 0 auto;align-items:center;justify-content:flex-end;margin-left:auto;gap:6px}.calendar-filter-btn,.header-icon-btn{width:40px;height:40px;flex-basis:40px}.nexus-db-status{margin-bottom:12px}}
 
 </style>
 </head>
 <body>
-<section id="nexusAuthScreen" class="nexus-auth-screen" aria-label="Acceso a Nexus Company">
- <div class="nexus-auth-card">
-  <div class="nexus-auth-brand">
-   <div class="nexus-auth-logo" aria-hidden="true">N</div>
-   <h1>Nexus Company</h1>
-   <p>Acceso privado a la plataforma de gestión financiera.</p>
-  </div>
-  <form id="nexusLoginForm" class="nexus-auth-form">
-   <div class="nexus-auth-field"><label for="nexusLoginUsername">Usuario</label><input id="nexusLoginUsername" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="40" value="Ruben"></div>
-   <div class="nexus-auth-field"><label for="nexusLoginPassword">Contraseña</label><input id="nexusLoginPassword" name="password" type="password" autocomplete="current-password" required maxlength="256" placeholder="Introduce tu contraseña"></div>
-   <button class="nexus-auth-submit" id="nexusLoginSubmit" type="submit"><i class="fa-solid fa-lock" aria-hidden="true"></i> Iniciar sesión</button>
-  </form>
-  <div id="nexusSetupPanel" hidden>
-   <p style="color:#c1d8ca;font-size:12px;line-height:1.5;margin:0 0 14px">Configura la cuenta propietaria una sola vez. El alta se cerrará automáticamente después de crearla.</p>
-   <form id="nexusSetupForm" class="nexus-auth-form">
-    <div class="nexus-auth-field"><label for="nexusSetupCode">Código de alta única</label><input id="nexusSetupCode" name="setupCode" type="password" autocomplete="off" required maxlength="128" placeholder="Código temporal de Apps Script"></div>
-    <div class="nexus-auth-field"><label for="nexusSetupUsername">Usuario propietario</label><input id="nexusSetupUsername" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required minlength="3" maxlength="40" value="Ruben"></div>
-    <div class="nexus-auth-field"><label for="nexusSetupPassword">Contraseña nueva</label><input id="nexusSetupPassword" name="password" type="password" autocomplete="new-password" required minlength="14" maxlength="256" placeholder="Mínimo 14 caracteres"></div>
-    <div class="nexus-auth-field"><label for="nexusSetupConfirm">Confirmar contraseña</label><input id="nexusSetupConfirm" name="confirmPassword" type="password" autocomplete="new-password" required minlength="14" maxlength="256" placeholder="Repite la contraseña"></div>
-    <button class="nexus-auth-submit" id="nexusSetupSubmit" type="submit"><i class="fa-solid fa-user-shield" aria-hidden="true"></i> Crear cuenta propietaria</button>
-   </form>
-  </div>
-  <p id="nexusAuthMessage" class="nexus-auth-message" role="status" aria-live="polite"></p>
-  <div class="nexus-auth-connection"><span class="dot" aria-hidden="true"></span><span id="nexusAuthConnectionText">Verificando conexión segura…</span></div>
-  <p class="nexus-auth-foot">La cuenta es privada. Las contraseñas no se almacenan en el HTML ni se envían a Google Sheets.</p>
- </div>
-</section>
-<iframe id="nexusBackendBridge" name="nexusBackendBridge" class="nexus-bridge-frame" title="Conexión segura con Nexus Company Backend" aria-hidden="true"></iframe>
-<form id="nexusBackendForm" method="post" target="nexusBackendBridge" hidden aria-hidden="true">
- <input type="hidden" name="action" id="nexusBridgeAction">
- <input type="hidden" name="payload" id="nexusBridgePayload">
- <input type="hidden" name="requestId" id="nexusBridgeRequestId">
-</form>
 
-<div class="app auth-locked" id="nexusApp">
+<div class="nexus-auth-screen" id="nexusLoginScreen">
+ <section class="nexus-auth-card" aria-labelledby="nexusAuthTitle">
+  <div class="nexus-auth-brand"><span class="nexus-auth-logo" aria-hidden="true">N</span><span><strong>Nexus Company</strong><small>Acceso privado a la plataforma financiera</small></span></div>
+  <h1 id="nexusAuthTitle">Iniciar sesión</h1>
+  <p class="nexus-auth-copy" id="nexusAuthIntro">Introduce tus credenciales para acceder al panel financiero.</p>
+  <form id="nexusLoginForm" class="nexus-auth-form" autocomplete="on">
+   <div class="nexus-auth-field"><label for="nexusLoginUsername">Usuario</label><input id="nexusLoginUsername" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" value="Ruben" required maxlength="40"></div>
+   <div class="nexus-auth-field"><label for="nexusLoginPassword">Contraseña</label><input id="nexusLoginPassword" name="password" type="password" autocomplete="current-password" required minlength="1"></div>
+   <button class="btn btn-primary nexus-auth-submit" id="nexusLoginSubmit" type="submit"><i class="fa-solid fa-lock" aria-hidden="true"></i> Entrar a Nexus Company</button>
+  </form>
+  <form id="nexusOwnerSetupForm" class="nexus-auth-form" hidden autocomplete="off">
+   <div class="nexus-auth-field"><label for="nexusSetupCode">Código de alta única</label><input id="nexusSetupCode" name="setupCode" type="password" autocomplete="off" required></div>
+   <div class="nexus-auth-field"><label for="nexusOwnerUsername">Usuario propietario</label><input id="nexusOwnerUsername" name="ownerUsername" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required minlength="3" maxlength="40"></div>
+   <div class="nexus-auth-field"><label for="nexusOwnerPassword">Contraseña (mínimo 14 caracteres)</label><input id="nexusOwnerPassword" name="newPassword" type="password" autocomplete="new-password" required minlength="14"></div>
+   <div class="nexus-auth-field"><label for="nexusOwnerPasswordConfirm">Confirmar contraseña</label><input id="nexusOwnerPasswordConfirm" name="confirmPassword" type="password" autocomplete="new-password" required minlength="14"></div>
+   <button class="btn btn-primary nexus-auth-submit" id="nexusOwnerSetupSubmit" type="submit"><i class="fa-solid fa-user-shield" aria-hidden="true"></i> Crear cuenta propietaria</button>
+  </form>
+  <div id="nexusAuthMessage" class="nexus-auth-message" role="status" aria-live="polite">Preparando conexión segura…</div>
+  <p class="nexus-auth-foot">Acceso de propietario único. <strong>El registro público se deshabilita automáticamente después del alta inicial.</strong></p>
+ </section>
+</div>
+<iframe id="nexusBridgeFrame" class="nexus-bridge-frame" title="Conexión segura con el servidor de datos" aria-hidden="true" tabindex="-1"></iframe>
+
+<div class="app">
 <aside class="sidebar">
  <div class="brand"><div class="brand-icon brand-n" aria-hidden="true">N</div><div><div class="brand-name">Nexus Company</div><div class="brand-sub">Resumen financiero</div></div></div>
  <div><div class="nav-label">Navegación</div><nav class="nav" id="sideNav">
@@ -481,8 +462,8 @@ input[data-money-input],input[data-decimal-input],[data-pct]{font-variant-numeri
 </aside>
 <main>
  <div class="mobile-brandbar"><div class="mobile-brand"><span class="brand-icon brand-n" aria-hidden="true">N</span><span class="mobile-brand-copy"><strong>Nexus Company</strong><small>Gestión financiera</small></span></div><button class="mobile-settings-btn" type="button" data-view="ajustes" aria-label="Abrir Configuración"><i class="fa-solid fa-gear" aria-hidden="true"></i><span>Configuración</span></button></div>
- <div class="topbar"><div><div class="eyebrow">Gestión financiera</div><h1 class="page-title" id="pageTitle">Resumen financiero</h1><p class="page-sub" id="pageSub">Vista general de ingresos, obligaciones, reservas y saldo.</p></div><div class="top-actions"><button class="calendar-filter-btn" type="button" id="openPeriodFilter" aria-label="Consultar cifras por mes o año" title="Consultar cifras por mes o año"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i></button></div></div>
-  <div class="nexus-connection-status" id="nexusConnectionStatus" hidden><span><i class="connected-dot" aria-hidden="true"></i><span id="nexusConnectionText">Conectado · Nexus Company DB</span></span><button type="button" id="nexusLogoutButton" class="nexus-logout-btn"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Cerrar sesión</button></div>
+ <div class="topbar"><div><div class="eyebrow">Gestión financiera</div><h1 class="page-title" id="pageTitle">Resumen financiero</h1><p class="page-sub" id="pageSub">Vista general de ingresos, obligaciones, reservas y saldo.</p></div><div class="top-actions"><button class="calendar-filter-btn" type="button" id="openPeriodFilter" aria-label="Consultar cifras por mes o año" title="Consultar cifras por mes o año"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i></button><button class="header-icon-btn" type="button" id="nexusLogoutButton" aria-label="Cerrar sesión" title="Cerrar sesión"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i></button></div></div>
+  <div class="nexus-db-status" id="nexusDbStatus" role="status" aria-live="polite"><span class="status-dot" aria-hidden="true"></span><span id="nexusDbStatusText">Sesión no iniciada</span></div>
 
  <section class="view active" id="view-inicio">
   <div class="hero">
@@ -544,7 +525,7 @@ input[data-money-input],input[data-decimal-input],[data-pct]{font-variant-numeri
    <div id="historyTable" class="table-wrap"><div class="empty">Los registros guardados aparecerán aquí. El cálculo actual se muestra arriba sin guardarse automáticamente.</div></div>
    <div class="actions"><button class="btn btn-plain" id="exportCsv">Exportar CSV</button><button class="btn btn-plain" id="exportBackup">Descargar respaldo JSON</button><button class="btn btn-danger" id="clearHistory">Borrar historial</button></div>
   </div>
-  <p class="footer-note">El seguimiento se sincroniza con Nexus Company DB mientras exista una sesión válida. Se recomienda exportar una copia de respaldo periódicamente.</p>
+  <p class="footer-note">Los registros guardados se sincronizan con Nexus Company DB. Exporta una copia de respaldo periódicamente, especialmente antes de cambiar de dispositivo.</p>
  </section>
 
  <section class="view" id="view-ajustes">
@@ -570,15 +551,15 @@ input[data-money-input],input[data-decimal-input],[data-pct]{font-variant-numeri
    <div class="settings-grid">
     <div class="settings-tile"><h3><i class="fa-solid fa-palette"></i> Identidad visual</h3><p>Nexus Company usa una interfaz oscura con acentos verdes sincronizados.</p><span class="pill pill-green">Tema oscuro fijo</span></div>
     <div class="settings-tile"><h3><i class="fa-solid fa-shield-halved"></i> Respaldo completo</h3><p>Exporta el historial, las preferencias y los porcentajes a un archivo JSON.</p><button class="btn btn-primary" id="downloadFullBackup" type="button"><i class="fa-solid fa-download"></i> Descargar respaldo</button></div>
-    <div class="settings-tile"><h3><i class="fa-solid fa-file-import"></i> Importar o restaurar</h3><p>Restaura un respaldo JSON. La importación reemplaza los datos locales actuales.</p><button class="btn btn-plain" id="chooseImport" type="button"><i class="fa-solid fa-folder-open"></i> Elegir respaldo</button><input class="file-input" type="file" id="importBackupFile" accept=".json,application/json"></div>
+    <div class="settings-tile"><h3><i class="fa-solid fa-file-import"></i> Importar o restaurar</h3><p>Restaura un respaldo JSON. La importación reemplaza los datos sincronizados actuales.</p><button class="btn btn-plain" id="chooseImport" type="button"><i class="fa-solid fa-folder-open"></i> Elegir respaldo</button><input class="file-input" type="file" id="importBackupFile" accept=".json,application/json"></div>
     <div class="settings-tile"><h3><i class="fa-solid fa-file-csv"></i> Exportar seguimiento</h3><p>Descarga el historial mensual para abrirlo en Excel u otra hoja de cálculo.</p><button class="btn btn-plain" id="settingsExportCsv" type="button"><i class="fa-solid fa-table"></i> Exportar CSV</button></div>
     <div class="settings-tile"><h3><i class="fa-solid fa-rotate-left"></i> Restablecer cálculos</h3><p>Restablece los campos de ingreso a cero sin borrar el historial.</p><button class="btn btn-plain" id="settingsResetCalc" type="button">Restablecer ingreso</button></div>
-    <div class="settings-tile"><h3><i class="fa-solid fa-trash-can"></i> Borrar datos locales</h3><p>Elimina el historial y las preferencias financieras de Nexus Company DB. Exporta un respaldo antes de continuar.</p><button class="btn btn-danger" id="settingsClearData" type="button"><i class="fa-solid fa-triangle-exclamation"></i> Borrar datos locales</button></div>
+    <div class="settings-tile"><h3><i class="fa-solid fa-trash-can"></i> Borrar datos sincronizados</h3><p>Elimina el historial y las preferencias sincronizadas con Nexus Company DB. Exporta un respaldo antes de continuar.</p><button class="btn btn-danger" id="settingsClearData" type="button"><i class="fa-solid fa-triangle-exclamation"></i> Borrar datos sincronizados</button></div>
    </div>
-   <p class="footer-note"><i class="fa-solid fa-lock"></i> Los datos financieros se sincronizan con Nexus Company DB mediante una sesión autenticada.</p>
+   <p class="footer-note"><i class="fa-solid fa-lock"></i> Los datos se almacenan en Nexus Company DB y se consultan después de iniciar sesión.</p>
   </div>
  </section>
- <p class="footer-note">Nexus Company es una herramienta de organización financiera, no asesoría legal o tributaria. Verifica las obligaciones aplicables antes de usar sus resultados. Los datos se sincronizan con Nexus Company DB mediante Google Apps Script.</p>
+ <p class="footer-note">Nexus Company es una herramienta de organización personal, no asesoría legal o tributaria. Verifica con UGPP, la entidad contratante y la asesoría contable la base de cotización, retención, IVA si aplica, ARL y mecanismo de pago de aportes. No se envían datos a ningún servidor.</p>
 </main>
 </div>
 <div class="period-modal" id="periodModal" hidden>
@@ -591,7 +572,7 @@ input[data-money-input],input[data-decimal-input],[data-pct]{font-variant-numeri
   <div class="period-dialog-actions"><button class="btn btn-plain" type="button" id="clearPeriodFilter">Ver cálculo actual</button><button class="btn btn-primary" type="button" id="applyPeriodFilter">Mostrar cifras</button></div>
  </div>
 </div>
-<nav class="mobile-nav auth-locked" id="mobileNav">
+<nav class="mobile-nav" id="mobileNav">
 <button class="active" data-view="inicio"><span class="ico"><i class="fa-solid fa-house"></i></span>Resumen</button>
 <button data-view="configurar"><span class="ico"><i class="fa-solid fa-wallet"></i></span>Ingresos</button>
 <button data-view="obligaciones"><span class="ico"><i class="fa-solid fa-scale-balanced"></i></span>Oblig.</button>
@@ -889,13 +870,13 @@ $('resetIncome').addEventListener('click',()=>{
  $('days').value=0;$('hours').value='0';$('rate').value='0';$('grossManual').value='';formatMoneyInputs();saveSettings();compute();
 });
 $('defaultDistribution').addEventListener('click',()=>{budgetDefs.forEach(d=>{localStorage.setItem('miniEmpresaPct_'+d.id,String(d.pct));localStorage.setItem('miniEmpresaMode_'+d.id,'manual')});saveSettings();compute()});
-$('saveDistribution').addEventListener('click',()=>{saveSettings();const b=$('saveDistribution');b.innerHTML='<i class="fa-solid fa-check" aria-hidden="true"></i> Configuración guardada';setTimeout(()=>b.innerHTML='<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Guardar configuración',1500)});
+$('saveDistribution').addEventListener('click',async()=>{saveSettings();const b=$('saveDistribution'),old=b.innerHTML;b.disabled=true;try{await syncNexusFinancialState(true);b.innerHTML='<i class="fa-solid fa-check" aria-hidden="true"></i> Configuración sincronizada'}catch(err){alert('No se pudo sincronizar la configuración: '+err.message)}finally{b.disabled=false;setTimeout(()=>{if(b.isConnected)b.innerHTML=old},1700)}});
 function getHistory(){try{return JSON.parse(localStorage.getItem('miniEmpresaHistoryV2')||'[]')}catch(e){return []}}
 function showUndo(message,undo){
  let bar=$('undoBar');if(!bar){bar=document.createElement('div');bar.id='undoBar';document.body.appendChild(bar)}
  bar.className='undo-bar';
  bar.innerHTML='<span class="undo-message">'+escapeHtml(message)+'</span><button type="button" class="undo-action"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Deshacer</button>';
- let active=true;const button=bar.querySelector('button');button.onclick=()=>{if(!active)return;active=false;undo();bar.remove()};
+ let active=true;const button=bar.querySelector('button');button.onclick=()=>{if(!active)return;active=false;undo();bar.remove();if(typeof scheduleNexusSync==='function')scheduleNexusSync(0)};
  setTimeout(()=>{active=false;if(bar.isConnected)bar.remove()},15000);
 }
 function bindHistoryTableActions(){
@@ -903,11 +884,10 @@ function bindHistoryTableActions(){
   const month=b.dataset.removeMonth,allRows=getHistory(),removed=allRows.find(r=>r.month===month);
   if(!removed||!confirm('¿Eliminar el registro de '+month+'?'))return;
   localStorage.setItem('miniEmpresaHistoryV2',JSON.stringify(allRows.filter(r=>r.month!==month)));
-  scheduleNexusSync(true);
-  updateMonthStatus();renderHistory();renderPeriodDisplay();
+  updateMonthStatus();renderHistory();renderPeriodDisplay();if(typeof scheduleNexusSync==='function')scheduleNexusSync(0);
   showUndo('Registro eliminado. La acción puede revertirse durante 15 segundos.',()=>{
    const latest=getHistory().filter(r=>r.month!==month);latest.push(removed);
-   localStorage.setItem('miniEmpresaHistoryV2',JSON.stringify(latest));scheduleNexusSync(true);updateMonthStatus();renderHistory();renderPeriodDisplay();
+   localStorage.setItem('miniEmpresaHistoryV2',JSON.stringify(latest));updateMonthStatus();renderHistory();renderPeriodDisplay();
   });
  }));
 }
@@ -990,15 +970,20 @@ function renderPeriodDisplay(){
  }
  const previous=calc;calc=display;render();calc=liveCalc||previous;
 }
-function saveMonth(){
+async function saveMonth(){
  compute();const c=liveCalc,month=localMonthValue(),existing=getHistory().some(r=>r.month===month);
  if(existing&&!confirm(`Ya existe un registro para el mes actual (${month}). ¿Deseas reemplazarlo con el cálculo actual?`))return;
  const row={...c,month,savedAt:new Date().toISOString()};
  const arr=getHistory().filter(r=>r.month!==month);arr.push(row);localStorage.setItem('miniEmpresaHistoryV2',JSON.stringify(arr));
- scheduleNexusSync(true);
- // Saving always records the current calendar month and leaves the independent search filter untouched.
  updateMonthStatus();renderHistory();renderPeriodDisplay();
- const b=$('saveMonth');b.textContent='Mes guardado ✓';setTimeout(()=>b.textContent='＋ Guardar este mes',1400);
+ const b=$('saveMonth'),original=b.innerHTML;b.disabled=true;b.textContent='Guardando…';
+ try{
+  await syncNexusFinancialState(true);
+  b.innerHTML='<i class="fa-solid fa-check" aria-hidden="true"></i> Mes guardado';
+ }catch(err){
+  b.innerHTML='<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Error al sincronizar';
+  alert('El cálculo quedó temporalmente en este navegador, pero no se confirmó en Google Sheets. Revisa la conexión antes de cerrar la página. Detalle: '+err.message);
+ }finally{b.disabled=false;setTimeout(()=>{if(b.isConnected)b.innerHTML=original},1800)}
 }
 $('saveMonth').addEventListener('click',saveMonth);
 function download(name,text,type){
@@ -1011,8 +996,32 @@ function createBackup(){saveSettings();return {app:'Nexus Company',version:3,exp
 $('exportBackup').addEventListener('click',()=>download('respaldo-mi-Nexus Company.json',JSON.stringify(createBackup(),null,2),'application/json'));
 $('downloadFullBackup').addEventListener('click',()=>download('respaldo-completo-mi-Nexus Company.json',JSON.stringify(createBackup(),null,2),'application/json'));
 $('exportSettings').addEventListener('click',()=>download('configuracion-mi-Nexus Company.json',JSON.stringify({app:'Nexus Company',version:3,exportedAt:new Date().toISOString(),settings:JSON.parse(localStorage.getItem('miniEmpresaSettingsV2')||'{}'),localPreferences:Object.fromEntries(Object.keys(localStorage).filter(k=>k.startsWith('miniEmpresaMode_')||k.startsWith('miniEmpresaRate_')||k.startsWith('miniEmpresaPct_')).map(k=>[k,localStorage.getItem(k)]))},null,2),'application/json'));
-$('clearHistory').addEventListener('click',()=>{if(confirm('¿Eliminar todos los registros guardados en este navegador?')){const previous=getHistory();localStorage.removeItem('miniEmpresaHistoryV2');scheduleNexusSync(true);updateMonthStatus();renderHistory();renderPeriodDisplay();showUndo('Historial eliminado. La acción puede revertirse durante 15 segundos.',()=>{localStorage.setItem('miniEmpresaHistoryV2',JSON.stringify(previous));scheduleNexusSync(true);updateMonthStatus();renderHistory()})}});
-function saveSettings(){const ids=['days','hours','rate','grossManual','arlRate','ibcRate','ibcMinimum','ibcMaximum','applyIbcMinimum','reserveBase'];const obj={};ids.forEach(id=>{const el=$(id);if(el.type==='checkbox')obj[id]=el.checked;else if(el.hasAttribute('data-money-input')){if(!el.value.trim())obj[id]='';else{const n=parseMoneyNumber(el.value);obj[id]=Number.isFinite(n)?String(n):''}}else obj[id]=el.value});['withholding','health','pension','arl',...reserveDefs.map(r=>r.id),...budgetDefs.map(r=>r.id)].forEach(k=>{obj['mode_'+k]=localStorage.getItem('miniEmpresaMode_'+k)||(['withholding','health','pension','arl'].includes(k)?'current':'manual');obj['rate_'+k]=localStorage.getItem('miniEmpresaRate_'+k)||'';obj['pct_'+k]=localStorage.getItem('miniEmpresaPct_'+k)||''});localStorage.setItem('miniEmpresaSettingsV2',JSON.stringify(obj));scheduleNexusSync();}
+$('clearHistory').addEventListener('click',async()=>{
+ if(!confirm('¿Eliminar todos los registros mensuales de Nexus Company DB? Esta acción no puede revertirse después de cerrar la opción Deshacer.'))return;
+ const previous=getHistory();localStorage.setItem('miniEmpresaHistoryV2','[]');updateMonthStatus();renderHistory();renderPeriodDisplay();
+ showUndo('Historial eliminado. Puedes deshacerlo durante 15 segundos.',()=>{localStorage.setItem('miniEmpresaHistoryV2',JSON.stringify(previous));updateMonthStatus();renderHistory();renderPeriodDisplay()});
+ try{await syncNexusFinancialState(true)}catch(err){alert('No se pudo confirmar el borrado en la base de datos: '+err.message)}
+});
+function saveSettings(){
+ const ids=['days','hours','rate','grossManual','arlRate','ibcRate','ibcMinimum','ibcMaximum','applyIbcMinimum','reserveBase'];
+ const obj={};
+ ids.forEach(id=>{
+  const el=$(id);
+  if(!el)return;
+  if(el.type==='checkbox')obj[id]=el.checked;
+  else if(el.hasAttribute('data-money-input')){
+   if(!el.value.trim())obj[id]='';
+   else{const n=parseMoneyNumber(el.value);obj[id]=Number.isFinite(n)?String(n):''}
+  }else obj[id]=el.value;
+ });
+ ['withholding','health','pension','arl',...reserveDefs.map(r=>r.id),...budgetDefs.map(r=>r.id)].forEach(k=>{
+  obj['mode_'+k]=localStorage.getItem('miniEmpresaMode_'+k)||(['withholding','health','pension','arl'].includes(k)?'current':'manual');
+  obj['rate_'+k]=localStorage.getItem('miniEmpresaRate_'+k)||'';
+  obj['pct_'+k]=localStorage.getItem('miniEmpresaPct_'+k)||'';
+ });
+ localStorage.setItem('miniEmpresaSettingsV2',JSON.stringify(obj));
+ if(typeof scheduleNexusSync==='function')scheduleNexusSync();
+}
 function loadSettings(){try{const obj=JSON.parse(localStorage.getItem('miniEmpresaSettingsV2')||'{}');
  const history=getHistory();
  const storedRate=parseMoneyNumber(obj.rate??'');
@@ -1039,12 +1048,10 @@ $('chooseImport')?.addEventListener('click',()=>$('importBackupFile').click());
 $('settingsExportCsv')?.addEventListener('click',()=>$('exportCsv').click());
 $('settingsResetCalc')?.addEventListener('click',()=>$('resetIncome').click());
 $('settingsClearData')?.addEventListener('click',async()=>{
- if(!confirm('Esto eliminará el historial y las preferencias financieras de Nexus Company DB. ¿Descargaste un respaldo y deseas continuar?'))return;
+ if(!confirm('Esto eliminará el historial y las preferencias sincronizadas con Nexus Company DB. La cuenta propietaria seguirá existiendo. ¿Tienes un respaldo y deseas continuar?'))return;
  ['miniEmpresaHistoryV2','miniEmpresaSettingsV2'].forEach(k=>localStorage.removeItem(k));
  Object.keys(localStorage).filter(k=>k.startsWith('miniEmpresaMode_')||k.startsWith('miniEmpresaRate_')||k.startsWith('miniEmpresaPct_')).forEach(k=>localStorage.removeItem(k));
- const ok=await syncNexusFinancialStateNow();
- if(!ok){alert('No se pudieron confirmar los cambios en el servidor. La sesión sigue abierta; vuelve a intentarlo.');return;}
- location.reload();
+ try{await syncNexusFinancialState(true);location.reload()}catch(err){alert('No se pudo confirmar el borrado en Google Sheets: '+err.message)}
 });
 $('importBackupFile')?.addEventListener('change',async e=>{
  const file=e.target.files?.[0];if(!file)return;
@@ -1059,195 +1066,257 @@ $('importBackupFile')?.addEventListener('change',async e=>{
    Object.entries(data.localPreferences).forEach(([k,v])=>{if(/^miniEmpresa(Mode|Rate|Pct)_/.test(k))localStorage.setItem(k,String(v))});
   }
   applyTheme('dark');
-  const synced=await syncNexusFinancialStateNow();
-  if(!synced)throw new Error('La importación local se realizó, pero no se pudo sincronizar con Nexus Company DB.');
-  alert('Respaldo restaurado y sincronizado con Nexus Company DB.');
+  await syncNexusFinancialState(true);
+  alert('Respaldo sincronizado en Nexus Company DB. La plataforma se actualizará.');
   location.reload();
  }catch(err){alert('No se pudo importar el respaldo: '+err.message)}
  finally{e.target.value=''}
 });
 
-loadSettings();updateMonthStatus();compute();renderHistory();saveSettings();
+// La inicialización financiera se difiere hasta validar una sesión con Apps Script.
+</script>
 
+<script>
+(function(){
+ 'use strict';
+ const NEXUS_CHANNEL='NEXUS_COMPANY_BRIDGE_V1';
+ // IMPORTANTE: luego de desplegar el proyecto NUEVO, pega aquí la URL /exec que Google te entregue.
+ const NEXUS_WEB_APP_URL='https://script.google.com/macros/s/AKfycbyNWaYHK4QXUSYmBPAWPEMCn-Iy2fGc71sXTlSyd5SJxwe-fZqLos-jbXPiw1GmLX3DQQ/exec';
+ const GITHUB_ORIGIN='https://rubengonzalezo.github.io';
+ const frame=document.getElementById('nexusBridgeFrame');
+ const loginForm=document.getElementById('nexusLoginForm');
+ const setupForm=document.getElementById('nexusOwnerSetupForm');
+ const authMessage=document.getElementById('nexusAuthMessage');
+ const authTitle=document.getElementById('nexusAuthTitle');
+ const authIntro=document.getElementById('nexusAuthIntro');
+ const dbStatus=document.getElementById('nexusDbStatus');
+ const dbStatusText=document.getElementById('nexusDbStatusText');
+ let bridgeReady=false, pending=new Map(), readyWaiters=[], requestCounter=0, pingTimer=null;
+ let sessionToken='', remoteReady=false, syncTimer=null, syncInFlight=null;
 
-/* Puente de autenticación y datos por POST: GitHub Pages conserva toda la interfaz. */
-const NEXUS_BACKEND_URL='https://script.google.com/macros/s/AKfycbyMORP3d1E1-xYareGVkVqD1yQpkMCe98D9OK7ByEQ95iBJqlgOfEbSrF1cd204MHZy/exec';
-const NEXUS_BRIDGE_CHANNEL='NEXUS_COMPANY_BRIDGE_V1';
-const NEXUS_SESSION_KEY='nexusCompanySessionTokenV1';
-var nexusPendingCalls=new Map(),nexusCallCounter=0,nexusCallQueue=Promise.resolve();
-var nexusSessionToken='',nexusAuthReady=false,nexusHydrating=false,nexusSyncTimer=null,nexusSyncRunning=false,nexusSyncAgain=false;
-function isTrustedBridgeOrigin(origin){return origin==='https://script.google.com'||origin==='https://script.googleusercontent.com'||origin.endsWith('.googleusercontent.com')}
-function makeNexusRequestId(){
- const bytes=new Uint8Array(16);
- if(window.crypto&&window.crypto.getRandomValues)window.crypto.getRandomValues(bytes);
- else for(let i=0;i<bytes.length;i++)bytes[i]=Math.floor(Math.random()*256);
- return 'nc-'+Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('')+'-'+(++nexusCallCounter).toString(36);
-}
-function submitNexusBackendCall(action,args){
- return new Promise((resolve,reject)=>{
-  const form=$('nexusBackendForm'),frame=$('nexusBackendBridge');
-  if(!form||!frame){reject(new Error('Falta el formulario de conexión con Apps Script en el HTML.'));return;}
-  const id=makeNexusRequestId();
-  const timer=setTimeout(()=>{nexusPendingCalls.delete(id);reject(new Error('El servidor de Apps Script no respondió al envío. Comprueba la implementación y los permisos.'));},45000);
-  nexusPendingCalls.set(id,{resolve,reject,timer,action});
-  $('nexusBridgeAction').value=String(action||'');
-  $('nexusBridgePayload').value=JSON.stringify(Array.isArray(args)?args:[]);
-  $('nexusBridgeRequestId').value=id;
-  form.action=NEXUS_BACKEND_URL;
-  form.target='nexusBackendBridge';
-  try{form.submit();}
-  catch(err){clearTimeout(timer);nexusPendingCalls.delete(id);reject(err);}
- });
-}
-function nexusBackendCall(action,args=[]){
- // Una sola petición a la vez evita que dos respuestas compitan por el mismo iframe oculto.
- const run=()=>submitNexusBackendCall(action,args);
- const current=nexusCallQueue.then(run,run);
- nexusCallQueue=current.then(()=>undefined,()=>undefined);
- return current;
-}
-window.addEventListener('message',event=>{
- if(!isTrustedBridgeOrigin(event.origin))return;
- const message=event.data;
- if(!message||message.channel!==NEXUS_BRIDGE_CHANNEL||message.type!=='RESPONSE'||typeof message.id!=='string')return;
- const pending=nexusPendingCalls.get(message.id);
- if(!pending)return;
- nexusPendingCalls.delete(message.id);clearTimeout(pending.timer);
- if(message.ok)pending.resolve(message.result);
- else pending.reject(new Error(message.error||'Falló la operación de Apps Script.'));
-});
-function setAuthMessage(text,isError=false){const el=$('nexusAuthMessage');if(el){el.textContent=text||'';el.style.color=isError?'#ffbdad':'#ffdda0'}}
-function setAuthConnection(text,good=false){const textEl=$('nexusAuthConnectionText');if(textEl)textEl.textContent=text;const dot=$('nexusAuthConnectionText')?.previousElementSibling;if(dot)dot.style.background=good?'#4de0a1':'#e8b45b'}
-function setNexusConnection(text,kind='ok'){
- const bar=$('nexusConnectionStatus'),label=$('nexusConnectionText');if(!bar||!label)return;
- bar.hidden=false;label.textContent=text;label.style.color=kind==='error'?'#ffb8ab':kind==='pending'?'#ffe0a0':'#bdebd0';
- const dot=bar.querySelector('.connected-dot');if(dot)dot.style.background=kind==='error'?'#ff7968':kind==='pending'?'#e8b45b':'#4de0a1';
-}
-function showNexusAuthMode(configured){
- $('nexusLoginForm').hidden=!configured;$('nexusSetupPanel').hidden=configured;
- if(configured){$('nexusLoginPassword').value='';setAuthMessage('');setAuthConnection('Servidor disponible. Inicia sesión para cargar tus datos.',true)}
- else {setAuthMessage('Configura la única cuenta propietaria con el código temporal generado desde Apps Script.');setAuthConnection('Servidor disponible; falta crear la cuenta propietaria.',true)}
-}
-function clearLocalFinancialCache(){
- ['miniEmpresaHistoryV2','miniEmpresaSettingsV2'].forEach(key=>localStorage.removeItem(key));
- Object.keys(localStorage).filter(key=>/^miniEmpresa(Mode|Rate|Pct)_/.test(key)).forEach(key=>localStorage.removeItem(key));
-}
-function readLocalPreferences(){const out={};Object.keys(localStorage).filter(key=>/^miniEmpresa(Mode|Rate|Pct)_/.test(key)).forEach(key=>out[key]=localStorage.getItem(key));return out}
-function collectNexusFinancialPayload(){
- let settings={};try{settings=JSON.parse(localStorage.getItem('miniEmpresaSettingsV2')||'{}')}catch(e){}
- return {settings:settings&&typeof settings==='object'&&!Array.isArray(settings)?settings:{},preferences:readLocalPreferences(),history:getHistory()};
-}
-function hasLocalFinancialData(){
- if(getHistory().length>0)return true;
- const prefs=readLocalPreferences();if(Object.keys(prefs).length)return true;
- let s={};try{s=JSON.parse(localStorage.getItem('miniEmpresaSettingsV2')||'{}')}catch(e){}
- const money=['days','hours','rate','grossManual'];
- return money.some(key=>{const val=parseMoneyNumber(s[key]??'');return Number.isFinite(val)&&val>0});
-}
-function applyRemoteFinancialState(data){
- clearLocalFinancialCache();
- localStorage.setItem('miniEmpresaSettingsV2',JSON.stringify(data.settings&&typeof data.settings==='object'?data.settings:{}));
- localStorage.setItem('miniEmpresaHistoryV2',JSON.stringify(Array.isArray(data.history)?data.history:[]));
- const preferences=data.preferences&&typeof data.preferences==='object'?data.preferences:{};
- Object.entries(preferences).forEach(([key,value])=>{if(/^miniEmpresa(Mode|Rate|Pct)_[A-Za-z0-9_-]{1,80}$/.test(key))localStorage.setItem(key,String(value??''))});
-}
-function activateNexusPanel(){
- $('nexusAuthScreen').hidden=true;
- $('nexusApp').classList.remove('auth-locked');$('mobileNav').classList.remove('auth-locked');
- $('nexusLoginPassword').value='';$('nexusSetupCode').value='';$('nexusSetupPassword').value='';$('nexusSetupConfirm').value='';
- setNexusConnection('Conectado · Nexus Company DB','ok');
-}
-async function enterNexusPanel(token){
- nexusSessionToken=token;sessionStorage.setItem(NEXUS_SESSION_KEY,token);
- setAuthMessage('Sesión validada. Cargando la información financiera…');setAuthConnection('Consultando Nexus Company DB…');
- let remote;
- try{remote=await nexusBackendCall('loadFinancial',[token]);}
- catch(err){sessionStorage.removeItem(NEXUS_SESSION_KEY);nexusSessionToken='';throw err;}
- const migrateLocal=!remote.hasSavedData&&hasLocalFinancialData()&&confirm('Hay datos financieros guardados en este navegador y la base de datos está vacía. ¿Deseas migrarlos a Nexus Company DB?');
- nexusHydrating=true;
- if(remote.hasSavedData)applyRemoteFinancialState(remote);
- else if(!migrateLocal)clearLocalFinancialCache();
- loadSettings();updateMonthStatus();compute();renderHistory();renderPeriodDisplay();saveSettings();
- nexusHydrating=false;nexusAuthReady=true;
- activateNexusPanel();
- if(migrateLocal){const saved=await syncNexusFinancialStateNow();if(!saved){setNexusConnection('Error al migrar datos a Nexus Company DB','error');return;}}
-}
-async function bootstrapNexusAccess(){
- setAuthConnection('Conectando con el servicio de autenticación…');setAuthMessage('');
- try{
-  const existingToken=sessionStorage.getItem(NEXUS_SESSION_KEY)||'';
-  if(existingToken){
-   try{const verification=await nexusBackendCall('verify',[existingToken]);if(verification&&verification.ok){await enterNexusPanel(existingToken);return;}}
-   catch(e){}
-   sessionStorage.removeItem(NEXUS_SESSION_KEY);
+ function setAuthMessage(text,kind){
+  if(!authMessage)return;
+  authMessage.textContent=String(text||'');
+  authMessage.className='nexus-auth-message'+(kind==='error'?' is-error':kind==='success'?' is-success':'');
+ }
+ function setDbStatus(text,kind){
+  if(dbStatusText)dbStatusText.textContent=String(text||'');
+  if(dbStatus){dbStatus.classList.toggle('is-connected',kind==='connected');dbStatus.classList.toggle('is-error',kind==='error')}
+ }
+ function isAllowedBridgeOrigin(origin){
+  try{const u=new URL(origin);return u.protocol==='https:'&&(u.hostname==='script.google.com'||u.hostname.endsWith('.googleusercontent.com'))}catch(e){return false}
+ }
+ function markBridgeReady(){
+  if(bridgeReady)return;
+  bridgeReady=true;
+  if(pingTimer){clearInterval(pingTimer);pingTimer=null}
+  readyWaiters.splice(0).forEach(fn=>fn());
+  if(!document.body.classList.contains('nexus-authenticated'))setAuthMessage('Servidor disponible. Ingresa tus credenciales para continuar.','success');
+ }
+ function sendHello(){
+  try{if(frame&&frame.contentWindow)frame.contentWindow.postMessage({channel:NEXUS_CHANNEL,type:'HELLO'},'*')}catch(e){}
+ }
+ function startPings(){
+  if(pingTimer)clearInterval(pingTimer);
+  let tries=0;
+  sendHello();
+  pingTimer=setInterval(()=>{
+   if(bridgeReady){clearInterval(pingTimer);pingTimer=null;return}
+   tries++;sendHello();
+   if(tries>=24){clearInterval(pingTimer);pingTimer=null;if(!bridgeReady)setAuthMessage('No se pudo establecer el puente con Apps Script. Verifica que publicaste la nueva versión y que el acceso de la aplicación web permite abrir el puente. El formulario sigue disponible para reintentar.','error')}
+  },650);
+ }
+ window.addEventListener('message',function(event){
+  if(!frame||event.source!==frame.contentWindow||!isAllowedBridgeOrigin(event.origin))return;
+  const data=event.data;
+  if(!data||data.channel!==NEXUS_CHANNEL)return;
+  if(data.type==='READY'){markBridgeReady();return}
+  if(data.type==='RESPONSE'&&typeof data.id==='string'){
+   const waiter=pending.get(data.id);if(!waiter)return;
+   pending.delete(data.id);clearTimeout(waiter.timer);
+   if(data.ok)waiter.resolve(data.result);else waiter.reject(new Error(String(data.error||'El servidor rechazó la solicitud.')));
   }
-  const status=await nexusBackendCall('authStatus');
-  showNexusAuthMode(!!status.configured);
- }catch(err){
-  setAuthMessage(err.message||'No fue posible conectar con Apps Script.',true);
-  setAuthConnection('Sin conexión con el servidor',false);
+ });
+ function waitForBridge(timeoutMs){
+  if(bridgeReady)return Promise.resolve();
+  return new Promise((resolve,reject)=>{
+   let done=false;
+   const timer=setTimeout(()=>{if(done)return;done=true;readyWaiters=readyWaiters.filter(fn=>fn!==complete);reject(new Error('No se recibió respuesta del puente de Apps Script. Comprueba la URL /exec, los permisos y la implementación publicada.'))},timeoutMs||18000);
+   function complete(){if(done)return;done=true;clearTimeout(timer);resolve()}
+   readyWaiters.push(complete);sendHello();
+  });
  }
-}
-$('nexusLoginForm').addEventListener('submit',async event=>{
- event.preventDefault();const button=$('nexusLoginSubmit');button.disabled=true;setAuthMessage('Validando credenciales…');
- try{
-  const result=await nexusBackendCall('login',[$('nexusLoginUsername').value,$('nexusLoginPassword').value]);
-  if(!result||!result.ok)throw new Error(result?.message||'No se pudo iniciar sesión.');
-  await enterNexusPanel(result.token);
- }catch(err){setAuthMessage(err.message||'No se pudo iniciar sesión.',true)}
- finally{button.disabled=false}
-});
-$('nexusSetupForm').addEventListener('submit',async event=>{
- event.preventDefault();const button=$('nexusSetupSubmit');button.disabled=true;setAuthMessage('Creando la cuenta propietaria…');
- try{
-  const result=await nexusBackendCall('createOwner',[$('nexusSetupCode').value,$('nexusSetupUsername').value,$('nexusSetupPassword').value,$('nexusSetupConfirm').value]);
-  if(!result||!result.ok)throw new Error(result?.message||'No se pudo crear la cuenta.');
-  $('nexusSetupCode').value='';$('nexusSetupPassword').value='';$('nexusSetupConfirm').value='';
-  $('nexusLoginUsername').value=$('nexusSetupUsername').value;showNexusAuthMode(true);setAuthMessage('Cuenta propietaria creada. Inicia sesión con tus nuevas credenciales.');
- }catch(err){setAuthMessage(err.message||'No se pudo crear la cuenta.',true)}
- finally{button.disabled=false}
-});
-function scheduleNexusSync(immediate=false){
- if(!nexusAuthReady||nexusHydrating||!nexusSessionToken)return;
- if(nexusSyncTimer){clearTimeout(nexusSyncTimer);nexusSyncTimer=null;}
- if(immediate){syncNexusFinancialStateNow();return;}
- nexusSyncTimer=setTimeout(()=>{nexusSyncTimer=null;syncNexusFinancialStateNow();},900);
-}
-async function syncNexusFinancialStateNow(){
- if(!nexusAuthReady||!nexusSessionToken)return false;
- if(nexusSyncRunning){nexusSyncAgain=true;return false;}
- nexusSyncRunning=true;setNexusConnection('Sincronizando con Nexus Company DB…','pending');
- let success=false;
- try{
-  const result=await nexusBackendCall('saveFinancial',[nexusSessionToken,collectNexusFinancialPayload()]);
-  if(!result||!result.ok)throw new Error(result?.message||'No se confirmó la sincronización.');
-  success=true;setNexusConnection('Conectado · Nexus Company DB','ok');
- }catch(err){
-  setNexusConnection('Error de sincronización · '+(err.message||'sin respuesta del servidor'),'error');
-  if(/sesión venció|sesión no es válida|session/i.test(err.message||'')){nexusAuthReady=false;sessionStorage.removeItem(NEXUS_SESSION_KEY);}
- }finally{
-  nexusSyncRunning=false;
-  if(nexusSyncAgain){nexusSyncAgain=false;setTimeout(()=>syncNexusFinancialStateNow(),250);}
+ function callBackend(action,args,timeoutMs){
+  return waitForBridge(timeoutMs||18000).then(()=>new Promise((resolve,reject)=>{
+   if(!frame||!frame.contentWindow){reject(new Error('No está disponible el marco de comunicación con Apps Script.'));return}
+   const id='nc-'+Date.now().toString(36)+'-'+(++requestCounter).toString(36)+'-'+Math.random().toString(36).slice(2,9);
+   const timer=setTimeout(()=>{pending.delete(id);reject(new Error('Apps Script no respondió a la operación "'+action+'" dentro del tiempo esperado. Revisa Ejecutaciones en Apps Script.'))},timeoutMs||22000);
+   pending.set(id,{resolve,reject,timer});
+   try{frame.contentWindow.postMessage({channel:NEXUS_CHANNEL,type:'CALL',id,action,args:Array.isArray(args)?args:[]},'*')}
+   catch(err){clearTimeout(timer);pending.delete(id);reject(new Error('No se pudo enviar la solicitud al puente: '+err.message))}
+  }));
  }
- return success;
-}
-async function closeNexusSession(){
- const token=nexusSessionToken||sessionStorage.getItem(NEXUS_SESSION_KEY)||'';
- nexusAuthReady=false;nexusSessionToken='';sessionStorage.removeItem(NEXUS_SESSION_KEY);
- if(nexusSyncTimer){clearTimeout(nexusSyncTimer);nexusSyncTimer=null;}
- try{if(token)await nexusBackendCall('logout',[token])}catch(e){}
- clearLocalFinancialCache();
- $('nexusApp').classList.add('auth-locked');$('mobileNav').classList.add('auth-locked');$('nexusAuthScreen').hidden=false;
- const status=await nexusBackendCall('authStatus').catch(()=>({configured:true}));showNexusAuthMode(!!status.configured);setAuthMessage('Sesión cerrada.');
-}
-$('nexusLogoutButton').addEventListener('click',closeNexusSession);
-/* Arranque: el formulario oculto envía POST al backend y recibe la respuesta por postMessage. */
-const nexusBridgeFrame=$('nexusBackendBridge');
-if(nexusBridgeFrame){
- nexusBridgeFrame.name='nexusBackendBridge';
- bootstrapNexusAccess();
-}
-/* Al abrir GitHub, la sesión del navegador se valida de nuevo antes de revelar la plataforma. */
+ function parseStored(key,fallback){try{const v=JSON.parse(localStorage.getItem(key)||'null');return v==null?fallback:v}catch(e){return fallback}}
+ function getPreferences(){const result={};Object.keys(localStorage).filter(k=>/^miniEmpresa(Mode|Rate|Pct)_[A-Za-z0-9_-]{1,80}$/.test(k)).forEach(k=>result[k]=localStorage.getItem(k)||'');return result}
+ function currentLocalSnapshot(){return {settings:parseStored('miniEmpresaSettingsV2',{}),preferences:getPreferences(),history:typeof getHistory==='function'?getHistory():parseStored('miniEmpresaHistoryV2',[])} }
+ function hasUsefulLocalData(s){
+  if(Array.isArray(s.history)&&s.history.length)return true;
+  if(s.preferences&&Object.keys(s.preferences).length)return true;
+  const o=s.settings||{};
+  return Number(o.days)>0||Number(o.hours)>0||Number(o.rate)>0||String(o.grossManual||'').trim()!=='';
+ }
+ function applyRemoteState(state){
+  localStorage.setItem('miniEmpresaSettingsV2',JSON.stringify(state.settings||{}));
+  localStorage.setItem('miniEmpresaHistoryV2',JSON.stringify(Array.isArray(state.history)?state.history:[]));
+  Object.keys(localStorage).filter(k=>/^miniEmpresa(Mode|Rate|Pct)_[A-Za-z0-9_-]{1,80}$/.test(k)).forEach(k=>localStorage.removeItem(k));
+  Object.entries(state.preferences||{}).forEach(([k,v])=>{if(/^miniEmpresa(Mode|Rate|Pct)_[A-Za-z0-9_-]{1,80}$/.test(k))localStorage.setItem(k,String(v==null?'':v))});
+ }
+ function buildSyncPayload(){return {settings:parseStored('miniEmpresaSettingsV2',{}),preferences:getPreferences(),history:typeof getHistory==='function'?getHistory():parseStored('miniEmpresaHistoryV2',[])}}
+ async function syncNexusFinancialState(throwOnError){
+  if(!remoteReady||!sessionToken)return false;
+  if(syncInFlight){try{await syncInFlight}catch(e){}}
+  const token=sessionToken,payload=buildSyncPayload();
+  setDbStatus('Sincronizando con Nexus Company DB…','pending');
+  syncInFlight=callBackend('saveFinancial',[token,payload],26000).then(result=>{
+   if(!result||result.ok!==true)throw new Error(result&&result.message?result.message:'El servidor no confirmó la sincronización.');
+   setDbStatus('Conectado · Nexus Company DB','connected');return true;
+  }).catch(err=>{
+   setDbStatus('Error de sincronización con Nexus Company DB','error');
+   if(/sesión (venció|ya no|no es válida)|sesión no corresponde/i.test(String(err.message||'')))expireSession();
+   if(throwOnError)throw err;
+   console.error('Nexus Company sync:',err.message);return false;
+  }).finally(()=>{syncInFlight=null});
+  return syncInFlight;
+ }
+ function scheduleNexusSync(delay){
+  if(!remoteReady||!sessionToken)return;
+  if(syncTimer)clearTimeout(syncTimer);
+  syncTimer=setTimeout(()=>{syncTimer=null;syncNexusFinancialState(false)},Number.isFinite(delay)?delay:900);
+ }
+ function expireSession(){
+  remoteReady=false;sessionToken='';sessionStorage.removeItem('nexusCompanyToken');clearClientFinanceCache();
+  document.body.classList.remove('nexus-authenticated');
+  switchToLogin(false);setAuthMessage('La sesión venció. Inicia sesión nuevamente.','error');
+ }
+ function clearClientFinanceCache(){
+  ['miniEmpresaHistoryV2','miniEmpresaSettingsV2','miniEmpresaTheme'].forEach(k=>localStorage.removeItem(k));
+  Object.keys(localStorage).filter(k=>/^miniEmpresa(Mode|Rate|Pct)_[A-Za-z0-9_-]{1,80}$/.test(k)).forEach(k=>localStorage.removeItem(k));
+ }
+ function switchToLogin(ownerSetup){
+  if(loginForm)loginForm.hidden=!!ownerSetup;
+  if(setupForm)setupForm.hidden=!ownerSetup;
+  if(authTitle)authTitle.textContent=ownerSetup?'Crear cuenta propietaria':'Iniciar sesión';
+  if(authIntro)authIntro.textContent=ownerSetup?'Configura la única cuenta autorizada. Necesitas el código de alta generado desde Apps Script.':'Introduce tus credenciales para acceder al panel financiero.';
+ }
+ async function activateSession(token,username){
+  sessionToken=String(token||'');sessionStorage.setItem('nexusCompanyToken',sessionToken);
+  let state;
+  try{state=await callBackend('loadFinancial',[sessionToken],26000);if(!state||state.ok!==true)throw new Error(state&&state.message?state.message:'No se recibió el estado financiero de Google Sheets.')}
+  catch(err){sessionToken='';sessionStorage.removeItem('nexusCompanyToken');throw new Error('La autenticación respondió, pero no se pudo cargar Nexus Company DB. '+err.message)}
+  const localSnapshot=currentLocalSnapshot();
+  const remoteHasHistory=Array.isArray(state.history)&&state.history.length>0;
+  // Si la hoja no tiene registros mensuales, ofrece migrar el historial/configuración local existente.
+  if(!remoteHasHistory&&hasUsefulLocalData(localSnapshot)){
+   const migrate=confirm('Este navegador contiene datos previos de Nexus Company y la hoja no tiene registros mensuales. ¿Deseas migrar esos datos a Nexus Company DB?');
+   if(migrate){
+    remoteReady=true;
+    await syncNexusFinancialState(true);
+    state=await callBackend('loadFinancial',[sessionToken],26000);
+   }else{clearClientFinanceCache();applyRemoteState(state)}
+  }else{
+   applyRemoteState(state);
+  }
+  remoteReady=true;
+  document.body.classList.add('nexus-authenticated');
+  if(typeof loadSettings==='function')loadSettings();
+  if(typeof updateMonthStatus==='function')updateMonthStatus();
+  if(typeof compute==='function')compute();
+  if(typeof renderHistory==='function')renderHistory();
+  if(typeof renderPeriodDisplay==='function')renderPeriodDisplay();
+  if(typeof go==='function')go('inicio',{fromPop:true});
+  setDbStatus('Conectado · Nexus Company DB','connected');
+  setAuthMessage('Sesión iniciada.','success');
+  const input=document.getElementById('nexusLoginPassword');if(input)input.value='';
+  return true;
+ }
+ async function startAuth(){
+  switchToLogin(false);
+  setAuthMessage('Comprobando la conexión con el servidor…');
+  const savedToken=sessionStorage.getItem('nexusCompanyToken');
+  try{
+   await waitForBridge(20000);
+   const status=await callBackend('authStatus',[],20000);
+   if(status&&status.configured){
+    switchToLogin(false);
+    if(savedToken){
+     try{const v=await callBackend('verify',[savedToken],18000);if(v&&v.ok){await activateSession(savedToken,v.username||'');return} }catch(e){}
+     sessionStorage.removeItem('nexusCompanyToken');
+    }
+    setAuthMessage('Servidor disponible. Ingresa tu usuario y contraseña.','success');
+   }else{
+    switchToLogin(true);
+    setAuthMessage('La cuenta propietaria todavía no existe. Genera el código de alta desde Apps Script y completa este formulario.');
+   }
+  }catch(err){
+   setAuthMessage('No se pudo contactar el servidor de Apps Script. El formulario permanece disponible, pero el acceso no puede validarse hasta que el backend responda. Detalle: '+err.message,'error');
+  }
+ }
+ loginForm.addEventListener('submit',async function(e){
+  e.preventDefault();
+  const button=document.getElementById('nexusLoginSubmit');
+  if(button)button.disabled=true;
+  setAuthMessage('Validando credenciales…');
+  try{
+   const username=document.getElementById('nexusLoginUsername').value.trim();
+   const password=document.getElementById('nexusLoginPassword').value;
+   const result=await callBackend('login',[username,password],26000);
+   if(!result||result.ok!==true)throw new Error(result&&result.message?result.message:'El servidor no validó las credenciales.');
+   await activateSession(result.token,result.username||username);
+  }catch(err){setAuthMessage(err.message,'error')}
+  finally{if(button)button.disabled=false}
+ });
+ setupForm.addEventListener('submit',async function(e){
+  e.preventDefault();
+  const button=document.getElementById('nexusOwnerSetupSubmit');if(button)button.disabled=true;
+  setAuthMessage('Creando la cuenta propietaria…');
+  try{
+   const code=document.getElementById('nexusSetupCode').value.trim();
+   const username=document.getElementById('nexusOwnerUsername').value.trim();
+   const password=document.getElementById('nexusOwnerPassword').value;
+   const confirmPassword=document.getElementById('nexusOwnerPasswordConfirm').value;
+   const result=await callBackend('createOwner',[code,username,password,confirmPassword],26000);
+   if(!result||result.ok!==true)throw new Error(result&&result.message?result.message:'No se pudo crear la cuenta propietaria.');
+   const login=await callBackend('login',[username,password],26000);
+   if(!login||login.ok!==true)throw new Error(login&&login.message?login.message:'La cuenta se creó, pero no pudo iniciar sesión automáticamente. Vuelve al formulario de acceso.');
+   await activateSession(login.token,login.username||username);
+  }catch(err){setAuthMessage(err.message,'error')}
+  finally{if(button)button.disabled=false}
+ });
+ document.getElementById('nexusLogoutButton').addEventListener('click',async function(){
+  if(!confirm('¿Cerrar la sesión de Nexus Company?'))return;
+  const token=sessionToken;
+  remoteReady=false;sessionToken='';sessionStorage.removeItem('nexusCompanyToken');
+  if(syncTimer){clearTimeout(syncTimer);syncTimer=null}
+  try{if(token)await callBackend('logout',[token],12000)}catch(e){}
+  clearClientFinanceCache();document.body.classList.remove('nexus-authenticated');setDbStatus('Sesión cerrada','pending');switchToLogin(false);setAuthMessage('Sesión cerrada correctamente.');
+ });
 
+ // Carga el puente solo cuando se ha pegado la URL de la implementación nueva.
+ const nexusBackendUrlIsConfigured=/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(NEXUS_WEB_APP_URL);
+ if(frame && nexusBackendUrlIsConfigured){
+  frame.addEventListener('load',startPings);
+  const separator=NEXUS_WEB_APP_URL.indexOf('?')>=0?'&':'?';
+  frame.src=NEXUS_WEB_APP_URL+separator+'bridge=1&v=4&ts='+Date.now();
+  startPings();
+  startAuth();
+ }else{
+  setDbStatus('Falta configurar Apps Script','error');
+  setAuthMessage('Antes de publicar esta página, reemplaza NEXUS_WEB_APP_URL por la URL /exec que genere el proyecto nuevo Nexus Company Backend.','error');
+ }
+
+ // Expone las funciones al primer script de la plataforma para sincronizar el estado.
+ window.scheduleNexusSync=scheduleNexusSync;
+ window.syncNexusFinancialState=syncNexusFinancialState;
+})();
 </script>
 </body></html>
