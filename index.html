@@ -397,6 +397,17 @@ input[data-money-input],input[data-decimal-input],[data-pct]{font-variant-numeri
 
 
 /* Acceso privado: GitHub aloja esta página; Apps Script solo autentica y guarda datos. */
+/* Arranque discreto: oculta formulario y aplicación hasta conocer el estado de sesión. */
+.nexus-boot-screen{display:none;min-height:100vh;min-height:100svh;place-items:center;padding:24px;background:radial-gradient(ellipse at 50% 0%,rgba(77,224,161,.10),transparent 48%),#050c09;color:#edf8f1}
+body.nexus-booting .nexus-boot-screen{display:grid}
+body.nexus-booting #nexusLoginScreen,body.nexus-booting .app,body.nexus-booting .mobile-nav{display:none!important}
+.nexus-boot-card{display:flex;flex-direction:column;align-items:center;gap:13px;text-align:center;width:min(100%,320px);padding:28px 24px;border:1px solid #244632;border-radius:20px;background:linear-gradient(155deg,#10251a,#0a1710 72%);box-shadow:0 20px 65px rgba(0,0,0,.28)}
+.nexus-boot-logo{width:44px;height:44px;display:grid;place-items:center;border-radius:14px;background:linear-gradient(145deg,#d9ffea,#4de0a1);color:#062016;font-size:30px;font-weight:950;letter-spacing:-.08em}
+.nexus-boot-spinner{width:22px;height:22px;border:2px solid #234b35;border-top-color:#4de0a1;border-radius:50%;animation:nexusSpin .8s linear infinite}
+.nexus-boot-title{font-size:14px;font-weight:850;color:#e7f8ee}
+.nexus-boot-subtitle{font-size:12px;color:#95b3a1;line-height:1.45}
+@keyframes nexusSpin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.nexus-boot-spinner{animation:none;border-top-color:#4de0a1}}
 .nexus-auth-screen{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(ellipse at 50% 0%,rgba(77,224,161,.12),transparent 48%),#050c09;color:#edf8f1}
 .nexus-auth-card{width:min(100%,430px);padding:clamp(22px,5vw,34px);border:1px solid #294b39;border-radius:24px;background:linear-gradient(155deg,#10251a,#0a1710 72%);box-shadow:0 24px 80px rgba(0,0,0,.44)}
 .nexus-auth-brand{display:flex;align-items:center;gap:13px;margin-bottom:24px}
@@ -419,7 +430,16 @@ body.nexus-authenticated #nexusLoginScreen{display:none!important}
 
 </style>
 </head>
-<body>
+<body class="nexus-booting">
+
+<div class="nexus-boot-screen" id="nexusBootScreen" role="status" aria-live="polite">
+ <div class="nexus-boot-card">
+  <div class="nexus-boot-logo" aria-hidden="true">N</div>
+  <div class="nexus-boot-spinner" aria-hidden="true"></div>
+  <div class="nexus-boot-title">Cargando Nexus Company</div>
+  <div class="nexus-boot-subtitle" id="nexusBootMessage">Restaurando tu sesión y preparando tus datos…</div>
+ </div>
+</div>
 
 <div class="nexus-auth-screen" id="nexusLoginScreen">
  <section class="nexus-auth-card" aria-labelledby="nexusAuthTitle">
@@ -636,7 +656,16 @@ const budgetDefs=[
  {id:'investPct',name:'Inversión y formación',icon:'fa-arrow-trend-up',tone:'blue',note:'Formación e inversión una vez cubiertas las necesidades esenciales.',pct:5,color:'#25a58b'}
 ];
 let calc={},liveCalc={};
-let currentView='inicio';
+function readInitialNexusView(){
+ try{
+  const hist=window.history&&window.history.state;
+  if(hist&&hist.nexusCompany&&viewMeta[hist.view])return hist.view;
+  const stored=localStorage.getItem('nexusCompanyCurrentView');
+  if(stored&&viewMeta[stored])return stored;
+ }catch(e){}
+ return 'inicio';
+}
+let currentView=readInitialNexusView();
 let periodFilter={type:'month',value:monthNow,active:false};
 function grossValue(){return $('grossManual').value.trim()!==''?val('grossManual'):val('days')*val('hours')*val('rate')}
 function compute(){
@@ -767,6 +796,7 @@ function go(view,options={}){
   try{window.history.pushState({nexusCompany:true,view},'',window.location.href)}catch(e){}
  }
  currentView=view;
+ try{localStorage.setItem('nexusCompanyCurrentView',view)}catch(e){}
  updateMonthStatus();
  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+view));
  document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
@@ -1090,6 +1120,25 @@ $('importBackupFile')?.addEventListener('change',async e=>{
  const dbStatusText=document.getElementById('nexusDbStatusText');
  let pending=new Map(), requestCounter=0;
  let sessionToken='', remoteReady=false, syncTimer=null, syncInFlight=null;
+ const MIGRATION_DECISION_KEY='nexusCompanyMigrationDecision_v1';
+ function endBootScreen(){document.body.classList.remove('nexus-booting')}
+ function beginBootScreen(message){
+  const label=document.getElementById('nexusBootMessage');
+  if(label&&message)label.textContent=String(message);
+  document.body.classList.add('nexus-booting');
+ }
+ function restoreSavedScroll(){
+  const saved=sessionStorage.getItem('nexusCompanyScrollY');
+  if(saved===null)return;
+  sessionStorage.removeItem('nexusCompanyScrollY');
+  const y=Math.max(0,Number(saved)||0);
+  requestAnimationFrame(()=>window.scrollTo(0,y));
+ }
+ window.addEventListener('pagehide',function(){
+  if(document.body.classList.contains('nexus-authenticated')){
+   try{sessionStorage.setItem('nexusCompanyScrollY',String(window.scrollY||0))}catch(e){}
+  }
+ });
 
  function setAuthMessage(text,kind){
   if(!authMessage)return;
@@ -1204,35 +1253,43 @@ $('importBackupFile')?.addEventListener('change',async e=>{
   catch(err){sessionToken='';sessionStorage.removeItem('nexusCompanyToken');throw new Error('La autenticación respondió, pero no se pudo cargar Nexus Company DB. '+err.message)}
   const localSnapshot=currentLocalSnapshot();
   const remoteHasHistory=Array.isArray(state.history)&&state.history.length>0;
-  // Si la hoja no tiene registros mensuales, ofrece migrar el historial/configuración local existente.
-  if(!remoteHasHistory&&hasUsefulLocalData(localSnapshot)){
+  const migrationDecision=localStorage.getItem(MIGRATION_DECISION_KEY);
+  // La decisión se guarda para que la pregunta no reaparezca en cada recarga.
+  if(!remoteHasHistory&&hasUsefulLocalData(localSnapshot)&&!migrationDecision){
    const migrate=confirm('Este navegador contiene datos previos de Nexus Company y la hoja no tiene registros mensuales. ¿Deseas migrar esos datos a Nexus Company DB?');
    if(migrate){
     remoteReady=true;
     await syncNexusFinancialState(true);
+    localStorage.setItem(MIGRATION_DECISION_KEY,'migrated');
     state=await callBackend('loadFinancial',[sessionToken],26000);
-   }else{clearClientFinanceCache();applyRemoteState(state)}
+   }else{
+    localStorage.setItem(MIGRATION_DECISION_KEY,'skipped');
+    clearClientFinanceCache();applyRemoteState(state);
+   }
   }else{
    applyRemoteState(state);
   }
   remoteReady=true;
-  document.body.classList.add('nexus-authenticated');
   if(typeof loadSettings==='function')loadSettings();
   if(typeof updateMonthStatus==='function')updateMonthStatus();
   if(typeof compute==='function')compute();
   if(typeof renderHistory==='function')renderHistory();
   if(typeof renderPeriodDisplay==='function')renderPeriodDisplay();
-  if(typeof go==='function')go('inicio',{fromPop:true});
+  // Conserva la sección abierta antes de recargar en lugar de forzar Resumen.
+  if(typeof go==='function')go(currentView,{fromPop:true});
   setDbStatus('Conectado · Nexus Company DB','connected');
   setAuthMessage('Sesión iniciada.','success');
   const input=document.getElementById('nexusLoginPassword');if(input)input.value='';
+  document.body.classList.add('nexus-authenticated');
+  endBootScreen();
+  restoreSavedScroll();
   return true;
  }
  async function startAuth(){
-  // En una instalación nueva, el alta se muestra desde el primer render.
-  // Si el backend confirma que ya hay propietario, cambiamos a inicio de sesión.
+  // Durante la comprobación, solo se muestra la pantalla mínima de carga.
+  beginBootScreen('Verificando tu acceso y preparando tus datos…');
   switchToLogin(true);
-  setAuthMessage('Formulario de alta disponible. Comprobando la conexión con el servidor…');
+  setAuthMessage('Comprobando conexión con el servidor…');
   setDbStatus('Conectando con Nexus Company DB…','pending');
   const savedToken=sessionStorage.getItem('nexusCompanyToken');
   try{
@@ -1249,17 +1306,19 @@ $('importBackupFile')?.addEventListener('change',async e=>{
     switchToLogin(true);
     setAuthMessage('La cuenta propietaria todavía no existe. Genera el código de alta desde Apps Script y completa este formulario.');
    }
+   endBootScreen();
   }catch(err){
-   // En una instalación nueva, no ocultar el formulario de alta si el puente tarda o no responde.
-   // El backend sigue siendo quien valida el código y bloquea cualquier alta si ya hay propietario.
+   // Si Google no responde, revela el formulario con el diagnóstico en lugar de dejar el cargador fijo.
    switchToLogin(true);
-   setAuthMessage('No se recibió respuesta de Apps Script mediante POST. El formulario está visible, pero el registro necesita que publiques la nueva versión de Code.gs con doPost y acceso adecuado. Detalle: '+err.message,'error');
+   setAuthMessage('No se recibió respuesta de Apps Script mediante POST. El formulario está visible, pero el registro necesita que el backend responda. Detalle: '+err.message,'error');
+   endBootScreen();
   }
  }
  loginForm.addEventListener('submit',async function(e){
   e.preventDefault();
   const button=document.getElementById('nexusLoginSubmit');
   if(button)button.disabled=true;
+  beginBootScreen('Validando tus credenciales…');
   setAuthMessage('Validando credenciales…');
   try{
    const username=document.getElementById('nexusLoginUsername').value.trim();
@@ -1267,14 +1326,15 @@ $('importBackupFile')?.addEventListener('change',async e=>{
    const result=await callBackend('login',[username,password],26000);
    if(!result||result.ok!==true)throw new Error(result&&result.message?result.message:'El servidor no validó las credenciales.');
    await activateSession(result.token,result.username||username);
-  }catch(err){setAuthMessage(err.message,'error')}
+  }catch(err){endBootScreen();setAuthMessage(err.message,'error')}
   finally{if(button)button.disabled=false}
  });
  setupForm.addEventListener('submit',async function(e){
   e.preventDefault();
   const button=document.getElementById('nexusOwnerSetupSubmit');if(button)button.disabled=true;
+  beginBootScreen('Creando tu cuenta propietaria…');
   setAuthMessage('Creando la cuenta propietaria…');
-  try{
+  try{ 
    const code=document.getElementById('nexusSetupCode').value.trim();
    const username=document.getElementById('nexusOwnerUsername').value.trim();
    const password=document.getElementById('nexusOwnerPassword').value;
@@ -1284,7 +1344,7 @@ $('importBackupFile')?.addEventListener('change',async e=>{
    const login=await callBackend('login',[username,password],26000);
    if(!login||login.ok!==true)throw new Error(login&&login.message?login.message:'La cuenta se creó, pero no pudo iniciar sesión automáticamente. Vuelve al formulario de acceso.');
    await activateSession(login.token,login.username||username);
-  }catch(err){setAuthMessage(err.message,'error')}
+  }catch(err){endBootScreen();setAuthMessage(err.message,'error')}
   finally{if(button)button.disabled=false}
  });
  document.getElementById('nexusLogoutButton').addEventListener('click',async function(){
@@ -1304,6 +1364,7 @@ $('importBackupFile')?.addEventListener('change',async e=>{
   switchToLogin(true);
   setDbStatus('Falta configurar Apps Script','error');
   setAuthMessage('El formulario de alta inicial está visible, pero falta configurar la URL /exec de Apps Script.','error');
+  endBootScreen();
  }
 
  // Expone las funciones al primer script de la plataforma para sincronizar el estado.
