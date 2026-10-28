@@ -917,8 +917,10 @@ function bindHistoryTableActions(){
   const month=b.dataset.removeMonth,allRows=getHistory(),removed=allRows.find(r=>r.month===month);
   if(!removed||!confirm('¿Eliminar el registro de '+month+'?'))return;
   localStorage.setItem('miniEmpresaHistoryV2',JSON.stringify(allRows.filter(r=>r.month!==month)));
+  queuePendingMonthDelete(month);
   updateMonthStatus();renderHistory();renderPeriodDisplay();if(typeof scheduleNexusSync==='function')scheduleNexusSync(0);
   showUndo('Registro eliminado. La acción puede revertirse durante 15 segundos.',()=>{
+   removePendingMonthDelete(month);
    const latest=getHistory().filter(r=>r.month!==month);latest.push(removed);
    localStorage.setItem('miniEmpresaHistoryV2',JSON.stringify(latest));updateMonthStatus();renderHistory();renderPeriodDisplay();
   });
@@ -1007,6 +1009,7 @@ async function saveMonth(){
  compute();const c=liveCalc,month=localMonthValue(),existing=getHistory().some(r=>r.month===month);
  if(existing&&!confirm(`Ya existe un registro para el mes actual (${month}). ¿Deseas reemplazarlo con el cálculo actual?`))return;
  const row={...c,month,savedAt:new Date().toISOString()};
+ removePendingMonthDelete(month);
  const arr=getHistory().filter(r=>r.month!==month);arr.push(row);localStorage.setItem('miniEmpresaHistoryV2',JSON.stringify(arr));
  updateMonthStatus();renderHistory();renderPeriodDisplay();
  const b=$('saveMonth'),original=b.innerHTML;b.disabled=true;b.textContent='Guardando…';
@@ -1135,6 +1138,20 @@ $('importBackupFile')?.addEventListener('change',async e=>{
   if(kind==='success')nexusSaveToastTimer=setTimeout(()=>{if(nexusSaveToast)nexusSaveToast.style.display='none';nexusSaveToastTimer=null},3600);
  }
  const MIGRATION_DECISION_KEY='nexusCompanyMigrationDecision_v1';
+ const PENDING_MONTH_DELETES_KEY='nexusCompanyPendingMonthDeletes_v1';
+ function readPendingMonthDeletes(){
+  try{const value=JSON.parse(localStorage.getItem(PENDING_MONTH_DELETES_KEY)||'[]');return Array.isArray(value)?value.filter(m=>/^\d{4}-(0[1-9]|1[0-2])$/.test(String(m))):[]}catch(e){return []}
+ }
+ function writePendingMonthDeletes(months){
+  const clean=[...new Set((Array.isArray(months)?months:[]).map(String).filter(m=>/^\d{4}-(0[1-9]|1[0-2])$/.test(m)))];
+  try{localStorage.setItem(PENDING_MONTH_DELETES_KEY,JSON.stringify(clean))}catch(e){}
+ }
+ function queuePendingMonthDelete(month){writePendingMonthDeletes([...readPendingMonthDeletes(),String(month)])}
+ function removePendingMonthDelete(month){writePendingMonthDeletes(readPendingMonthDeletes().filter(m=>m!==String(month)))}
+ function clearSyncedMonthDeletes(months){
+  const done=new Set(Array.isArray(months)?months:[]);
+  writePendingMonthDeletes(readPendingMonthDeletes().filter(m=>!done.has(m)));
+ }
  function endBootScreen(){document.body.classList.remove('nexus-booting')}
  function beginBootScreen(message){
   const label=document.getElementById('nexusBootMessage');
@@ -1230,7 +1247,7 @@ $('importBackupFile')?.addEventListener('change',async e=>{
   Object.keys(localStorage).filter(k=>/^miniEmpresa(Mode|Rate|Pct)_[A-Za-z0-9_-]{1,80}$/.test(k)).forEach(k=>localStorage.removeItem(k));
   Object.entries(state.preferences||{}).forEach(([k,v])=>{if(/^miniEmpresa(Mode|Rate|Pct)_[A-Za-z0-9_-]{1,80}$/.test(k))localStorage.setItem(k,String(v==null?'':v))});
  }
- function buildSyncPayload(){return {settings:parseStored('miniEmpresaSettingsV2',{}),preferences:getPreferences(),history:typeof getHistory==='function'?getHistory():parseStored('miniEmpresaHistoryV2',[])}}
+ function buildSyncPayload(){return {settings:parseStored('miniEmpresaSettingsV2',{}),preferences:getPreferences(),history:typeof getHistory==='function'?getHistory():parseStored('miniEmpresaHistoryV2',[]),deletedMonths:readPendingMonthDeletes()}}
  async function syncNexusFinancialState(throwOnError){
   if(!remoteReady||!sessionToken){
    const err=new Error('La sesión todavía no está lista para guardar en Google Sheets.');
@@ -1249,6 +1266,7 @@ $('importBackupFile')?.addEventListener('change',async e=>{
   syncInFlight=request;
   try{
    const result=await request;
+   clearSyncedMonthDeletes(payload.deletedMonths);
    retryCount=0;
    try{localStorage.setItem(MIGRATION_DECISION_KEY,'saved')}catch(e){}
    if(retryTimer){clearTimeout(retryTimer);retryTimer=null}
@@ -1304,7 +1322,8 @@ $('importBackupFile')?.addEventListener('change',async e=>{
   const addRows=(rows)=>{(Array.isArray(rows)?rows:[]).forEach(row=>{if(row&&/^\d{4}-(0[1-9]|1[0-2])$/.test(String(row.month||'')))byMonth[String(row.month)]=row})};
   if(preferLocal){addRows(remote&&remote.history);addRows(local&&local.history)}
   else{addRows(local&&local.history);addRows(remote&&remote.history)}
-  const history=Object.keys(byMonth).sort().map(month=>byMonth[month]);
+  const pendingDeletes=new Set(readPendingMonthDeletes());
+  const history=Object.keys(byMonth).sort().filter(month=>!pendingDeletes.has(month)).map(month=>byMonth[month]);
   return {settings:settings,preferences:preferences,history:history};
  }
  async function activateSession(token,username){
