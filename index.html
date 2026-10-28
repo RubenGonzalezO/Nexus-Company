@@ -1014,6 +1014,7 @@ async function saveMonth(){
  const arr=getHistory().filter(r=>r.month!==month);arr.push(row);
  // Conserva siempre una copia local antes de intentar la escritura remota.
  localStorage.setItem('miniEmpresaHistoryV2',JSON.stringify(arr));
+ try{localStorage.setItem('nexusCompanyMigrationDecision_v1','pending')}catch(e){}
  updateMonthStatus();renderHistory();renderPeriodDisplay();
  const b=$('saveMonth'),original=b.innerHTML;b.disabled=true;b.textContent='Guardando y verificando…';
  try{
@@ -1022,6 +1023,7 @@ async function saveMonth(){
   if(!result||result.ok!==true||result.verified!==true)throw new Error('El servidor no confirmó la lectura posterior del registro mensual.');
   b.innerHTML='<i class="fa-solid fa-check" aria-hidden="true"></i> Mes guardado y verificado';
  }catch(err){
+  try{localStorage.setItem('nexusCompanyMigrationDecision_v1','pending')}catch(e){}
   b.innerHTML='<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> No confirmado en la base';
   alert('El registro quedó conservado en este navegador, pero NO se confirmó en Google Sheets. No cierres ni borres los datos locales. Detalle: '+String(err.message||err));
  }finally{b.disabled=false;setTimeout(()=>{if(b.isConnected)b.innerHTML=original},3500)}
@@ -1121,7 +1123,7 @@ $('importBackupFile')?.addEventListener('change',async e=>{
 (function(){
  'use strict';
  const NEXUS_CHANNEL='NEXUS_COMPANY_BRIDGE_V1';
- const NEXUS_REQUIRED_BACKEND_VERSION='NC-SAVE-MONTH-VERIFY-2026-10-28-01';
+ const NEXUS_REQUIRED_BACKEND_VERSION='NC-MONTH-SAVE-ATOMIC-VERIFY-2026-10-27-02';
  // IMPORTANTE: luego de desplegar el proyecto NUEVO, pega aquí la URL /exec que Google te entregue.
  const NEXUS_WEB_APP_URL='https://script.google.com/macros/s/AKfycbyNWaYHK4QXUSYmBPAWPEMCn-Iy2fGc71sXTlSyd5SJxwe-fZqLos-jbXPiw1GmLX3DQQ/exec';
  const loginForm=document.getElementById('nexusLoginForm');
@@ -1133,6 +1135,7 @@ $('importBackupFile')?.addEventListener('change',async e=>{
  const dbStatusText=document.getElementById('nexusDbStatusText');
  let pending=new Map(), requestCounter=0;
  let sessionToken='', remoteReady=false, syncTimer=null, syncInFlight=null, retryTimer=null, retryCount=0;
+ let monthSaveInFlight=null;
  let nexusSaveToast=null, nexusSaveToastTimer=null;
  function showSaveToast(message,kind){
   if(!nexusSaveToast){nexusSaveToast=document.createElement('div');nexusSaveToast.id='nexusSaveToast';nexusSaveToast.setAttribute('role','status');nexusSaveToast.setAttribute('aria-live','polite');nexusSaveToast.style.cssText='position:fixed;right:16px;bottom:16px;z-index:100000;max-width:min(460px,calc(100vw - 32px));padding:12px 16px;border-radius:12px;font:600 13px/1.45 system-ui,sans-serif;color:#effff7;box-shadow:0 10px 32px #0008;display:none';document.body.appendChild(nexusSaveToast)}
@@ -1256,32 +1259,53 @@ $('importBackupFile')?.addEventListener('change',async e=>{
  function buildSyncPayload(){return {settings:parseStored('miniEmpresaSettingsV2',{}),preferences:getPreferences(),history:typeof getHistory==='function'?getHistory():parseStored('miniEmpresaHistoryV2',[]),deletedMonths:readPendingMonthDeletes()}}
  async function saveNexusMonthRecord(record){
   if(!remoteReady||!sessionToken)throw new Error('La sesión todavía no está lista para guardar en Google Sheets.');
-  if(!record||typeof record!=='object'||!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(record.month||'')))throw new Error('El registro mensual no tiene un mes válido.');
-  if(syncTimer){clearTimeout(syncTimer);syncTimer=null}
-  // Evita que una sincronización que ya empezó compita con la operación dedicada.
-  if(syncInFlight){try{await syncInFlight}catch(e){}}
-  if(syncTimer){clearTimeout(syncTimer);syncTimer=null}
-  const token=sessionToken;
-  const settings=parseStored('miniEmpresaSettingsV2',{});
-  const preferences=getPreferences();
-  setDbStatus('Guardando y verificando el mes '+record.month+'…','pending');
-  try{
-   const result=await callBackend('saveMonth',[token,record,settings,preferences],30000);
-   if(!result||result.ok!==true||result.verified!==true||String(result.month)!==String(record.month)){
-    throw new Error(result&&result.message?result.message:'El backend no devolvió una verificación confirmada del mes guardado.');
+  if(!record||typeof record!=='object'||Array.isArray(record)||!/^[0-9]{4}-(0[1-9]|1[0-2])$/.test(String(record.month||'')))throw new Error('El registro mensual no tiene un mes válido.');
+  if(monthSaveInFlight)return monthSaveInFlight;
+  const snapshot=JSON.parse(JSON.stringify(record));
+  const operation=(async()=>{
+   if(syncTimer){clearTimeout(syncTimer);syncTimer=null}
+   if(retryTimer){clearTimeout(retryTimer);retryTimer=null}
+   // Todas las escrituras esperan a que termine la anterior.
+   if(syncInFlight){try{await syncInFlight}catch(e){}}
+   if(!remoteReady||!sessionToken)throw new Error('La sesión terminó antes de confirmar el guardado. Inicia sesión de nuevo.');
+   const token=sessionToken;
+   const settings=parseStored('miniEmpresaSettingsV2',{});
+   const preferences=getPreferences();
+   try{localStorage.setItem(MIGRATION_DECISION_KEY,'pending')}catch(e){}
+   setDbStatus('Guardando y verificando el mes '+snapshot.month+'…','pending');
+   const request=callBackend('saveMonth',[token,snapshot,settings,preferences],35000);
+   syncInFlight=request;
+   try{
+    const result=await request;
+    if(!result||result.ok!==true||result.verified!==true||String(result.month)!==String(snapshot.month)){
+     throw new Error(result&&result.message?result.message:'El servidor no confirmó la lectura posterior del registro mensual.');
+    }
+    clearSyncedMonthDeletes([snapshot.month]);
+    try{localStorage.setItem(MIGRATION_DECISION_KEY,'saved')}catch(e){}
+    retryCount=0;
+    if(retryTimer){clearTimeout(retryTimer);retryTimer=null}
+    setDbStatus('Mes '+snapshot.month+' guardado y verificado · Nexus Company DB','connected');
+    showSaveToast('Mes '+snapshot.month+' guardado y comprobado en Google Sheets.','success');
+    return result;
+   }catch(err){
+    try{localStorage.setItem(MIGRATION_DECISION_KEY,'pending')}catch(e){}
+    setDbStatus('No se pudo verificar el guardado mensual','error');
+    showSaveToast('El mes '+snapshot.month+' sigue pendiente de confirmación en Google Sheets. Se conservaron los datos locales. '+String(err.message||err),'error');
+    // Reintenta el guardado mensual dedicado (idempotente) con verificación posterior.
+    if(remoteReady&&sessionToken&&retryCount<5&&!retryTimer){
+     const delay=Math.min(30000,1800*Math.pow(2,retryCount));retryCount++;
+     retryTimer=setTimeout(()=>{retryTimer=null;saveNexusMonthRecord(snapshot).catch(()=>{})},delay);
+    }
+    throw err;
+   }finally{
+    if(syncInFlight===request)syncInFlight=null;
    }
-   clearSyncedMonthDeletes([record.month]);
-   try{localStorage.setItem(MIGRATION_DECISION_KEY,'saved')}catch(e){}
-   retryCount=0;
-   setDbStatus('Mes '+record.month+' guardado y verificado · Nexus Company DB','connected');
-   showSaveToast('Mes '+record.month+' guardado y comprobado en Google Sheets.','success');
-   return result;
-  }catch(err){
-   setDbStatus('No se pudo verificar el guardado mensual','error');
-   showSaveToast('Mes '+record.month+' conservado localmente; falta confirmación de Google Sheets. '+String(err.message||err),'error');
-   throw err;
-  }
+  })();
+  monthSaveInFlight=operation;
+  try{return await operation}
+  finally{if(monthSaveInFlight===operation)monthSaveInFlight=null}
  }
+
  async function syncNexusFinancialState(throwOnError){
   if(!remoteReady||!sessionToken){
    const err=new Error('La sesión todavía no está lista para guardar en Google Sheets.');
