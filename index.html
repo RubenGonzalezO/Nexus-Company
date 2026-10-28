@@ -882,18 +882,22 @@ document.querySelectorAll('[data-money-input]').forEach(input=>input.addEventLis
 ['ibcRate','ibcMinimum','ibcMaximum','applyIbcMinimum'].forEach(id=>$(id).addEventListener('input',()=>{compute();saveSettings()}));
 $('arlRate').addEventListener('change',()=>{compute();saveSettings()});
 document.addEventListener('change',e=>{if(e.target.matches('[data-pct]')&&!e.target.disabled){const id=e.target.dataset.pct;const parsed=parseLocaleNumber(e.target.value);const value=Number.isFinite(parsed)?Math.max(0,Math.min(100,parsed)):0;e.target.value=fmtInputPct(value);if(['withholding','health','pension'].includes(id))localStorage.setItem('miniEmpresaRate_'+id,String(value));else localStorage.setItem('miniEmpresaPct_'+id,String(value));saveSettings();compute()}if(e.target.id==='reserveBase'){saveSettings();compute()}});
-$('saveIncome').addEventListener('click',()=>{
+$('saveIncome').addEventListener('click',async()=>{
  compute();saveSettings();
- // Este botón recalcula únicamente; no escribe nada en el historial.
- // Al actualizar, se vuelve a mostrar el cálculo vivo en todos los apartados.
  const month=localMonthValue();
  $('monthPicker').value=month;$('periodYear').value=month.slice(0,4);
  periodFilter={type:'month',value:month,active:false};
  updateMonthStatus();renderCurrentCalculationPreview();renderHistory();renderPeriodDisplay();
  go('obligaciones');
  const button=$('saveIncome'),original=button.innerHTML;
- button.innerHTML='<i class="fa-solid fa-check" aria-hidden="true"></i> Cálculo actualizado';
- setTimeout(()=>{if(button.isConnected)button.innerHTML=original},1600);
+ button.disabled=true;button.innerHTML='<i class="fa-solid fa-rotate fa-spin" aria-hidden="true"></i> Guardando configuración…';
+ try{
+  if(typeof window.syncNexusFinancialState!=='function')throw new Error('La sincronización aún no está inicializada.');
+  const saved=await window.syncNexusFinancialState(true);
+  if(!saved)throw new Error('El servidor no confirmó la escritura.');
+  button.innerHTML='<i class="fa-solid fa-check" aria-hidden="true"></i> Cálculo actualizado y guardado';
+ }catch(err){button.innerHTML='<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Guardado pendiente'}
+ finally{button.disabled=false;setTimeout(()=>{if(button.isConnected)button.innerHTML=original},2500)}
 });
 $('resetIncome').addEventListener('click',()=>{
  $('days').value=0;$('hours').value='0';$('rate').value='0';$('grossManual').value='';formatMoneyInputs();saveSettings();compute();
@@ -1119,7 +1123,17 @@ $('importBackupFile')?.addEventListener('change',async e=>{
  const dbStatus=document.getElementById('nexusDbStatus');
  const dbStatusText=document.getElementById('nexusDbStatusText');
  let pending=new Map(), requestCounter=0;
- let sessionToken='', remoteReady=false, syncTimer=null, syncInFlight=null;
+ let sessionToken='', remoteReady=false, syncTimer=null, syncInFlight=null, retryTimer=null, retryCount=0;
+ let nexusSaveToast=null, nexusSaveToastTimer=null;
+ function showSaveToast(message,kind){
+  if(!nexusSaveToast){nexusSaveToast=document.createElement('div');nexusSaveToast.id='nexusSaveToast';nexusSaveToast.setAttribute('role','status');nexusSaveToast.setAttribute('aria-live','polite');nexusSaveToast.style.cssText='position:fixed;right:16px;bottom:16px;z-index:100000;max-width:min(460px,calc(100vw - 32px));padding:12px 16px;border-radius:12px;font:600 13px/1.45 system-ui,sans-serif;color:#effff7;box-shadow:0 10px 32px #0008;display:none';document.body.appendChild(nexusSaveToast)}
+  if(nexusSaveToastTimer){clearTimeout(nexusSaveToastTimer);nexusSaveToastTimer=null}
+  nexusSaveToast.textContent=String(message||'');
+  nexusSaveToast.style.background=kind==='error'?'#7f1d1d':kind==='success'?'#065f46':'#24352e';
+  nexusSaveToast.style.border='1px solid '+(kind==='error'?'#f87171':kind==='success'?'#34d399':'#5e8270');
+  nexusSaveToast.style.display='block';
+  if(kind==='success')nexusSaveToastTimer=setTimeout(()=>{if(nexusSaveToast)nexusSaveToast.style.display='none';nexusSaveToastTimer=null},3600);
+ }
  const MIGRATION_DECISION_KEY='nexusCompanyMigrationDecision_v1';
  function endBootScreen(){document.body.classList.remove('nexus-booting')}
  function beginBootScreen(message){
@@ -1137,6 +1151,13 @@ $('importBackupFile')?.addEventListener('change',async e=>{
  window.addEventListener('pagehide',function(){
   if(document.body.classList.contains('nexus-authenticated')){
    try{sessionStorage.setItem('nexusCompanyScrollY',String(window.scrollY||0))}catch(e){}
+  }
+ });
+ document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='hidden'&&remoteReady&&sessionToken){
+   if(syncTimer){clearTimeout(syncTimer);syncTimer=null}
+   // Best effort: begins a final sync on tab switch/close, while localStorage remains intact.
+   syncNexusFinancialState(false);
   }
  });
 
@@ -1211,28 +1232,54 @@ $('importBackupFile')?.addEventListener('change',async e=>{
  }
  function buildSyncPayload(){return {settings:parseStored('miniEmpresaSettingsV2',{}),preferences:getPreferences(),history:typeof getHistory==='function'?getHistory():parseStored('miniEmpresaHistoryV2',[])}}
  async function syncNexusFinancialState(throwOnError){
-  if(!remoteReady||!sessionToken)return false;
+  if(!remoteReady||!sessionToken){
+   const err=new Error('La sesión todavía no está lista para guardar en Google Sheets.');
+   if(throwOnError)throw err;
+   return false;
+  }
+  if(throwOnError&&syncTimer){clearTimeout(syncTimer);syncTimer=null}
   if(syncInFlight){try{await syncInFlight}catch(e){}}
   const token=sessionToken,payload=buildSyncPayload();
   setDbStatus('Sincronizando con Nexus Company DB…','pending');
-  syncInFlight=callBackend('saveFinancial',[token,payload],26000).then(result=>{
-   if(!result||result.ok!==true)throw new Error(result&&result.message?result.message:'El servidor no confirmó la sincronización.');
-   setDbStatus('Conectado · Nexus Company DB','connected');return true;
-  }).catch(err=>{
+  const request=(async()=>{
+   const result=await callBackend('saveFinancial',[token,payload],30000);
+   if(!result||result.ok!==true)throw new Error(result&&result.message?result.message:'El servidor no confirmó la escritura en Google Sheets.');
+   return result;
+  })();
+  syncInFlight=request;
+  try{
+   const result=await request;
+   retryCount=0;
+   try{localStorage.setItem(MIGRATION_DECISION_KEY,'saved')}catch(e){}
+   if(retryTimer){clearTimeout(retryTimer);retryTimer=null}
+   setDbStatus('Conectado · Nexus Company DB','connected');
+   showSaveToast('Datos guardados en Nexus Company DB.','success');
+   return true;
+  }catch(err){
+   try{localStorage.setItem(MIGRATION_DECISION_KEY,'pending')}catch(e){}
    setDbStatus('Error de sincronización con Nexus Company DB','error');
+   showSaveToast('No se confirmó el guardado en Google Sheets. Tus datos locales se conservaron. Detalle: '+String(err.message||err),'error');
    if(/sesión (venció|ya no|no es válida)|sesión no corresponde/i.test(String(err.message||'')))expireSession();
+   else if(remoteReady&&sessionToken&&retryCount<5&&!retryTimer){
+    const delay=Math.min(30000,1500*Math.pow(2,retryCount));retryCount++;
+    retryTimer=setTimeout(()=>{retryTimer=null;syncNexusFinancialState(false)},delay);
+   }
    if(throwOnError)throw err;
-   console.error('Nexus Company sync:',err.message);return false;
-  }).finally(()=>{syncInFlight=null});
-  return syncInFlight;
+   console.error('Nexus Company sync:',err.message);
+   return false;
+  }finally{if(syncInFlight===request)syncInFlight=null}
  }
  function scheduleNexusSync(delay){
   if(!remoteReady||!sessionToken)return;
+  try{localStorage.setItem(MIGRATION_DECISION_KEY,'pending')}catch(e){}
   if(syncTimer)clearTimeout(syncTimer);
-  syncTimer=setTimeout(()=>{syncTimer=null;syncNexusFinancialState(false)},Number.isFinite(delay)?delay:900);
+  if(retryTimer){clearTimeout(retryTimer);retryTimer=null}
+  syncTimer=setTimeout(()=>{syncTimer=null;syncNexusFinancialState(false)},Number.isFinite(delay)?delay:500);
  }
  function expireSession(){
-  remoteReady=false;sessionToken='';sessionStorage.removeItem('nexusCompanyToken');clearClientFinanceCache();
+  remoteReady=false;sessionToken='';sessionStorage.removeItem('nexusCompanyToken');
+  if(syncTimer){clearTimeout(syncTimer);syncTimer=null}
+  if(retryTimer){clearTimeout(retryTimer);retryTimer=null}
   document.body.classList.remove('nexus-authenticated');
   switchToLogin(false);setAuthMessage('La sesión venció. Inicia sesión nuevamente.','error');
  }
@@ -1246,43 +1293,71 @@ $('importBackupFile')?.addEventListener('change',async e=>{
   if(authTitle)authTitle.textContent=ownerSetup?'Crear cuenta propietaria':'Iniciar sesión';
   if(authIntro)authIntro.textContent=ownerSetup?'Configura la única cuenta autorizada. Necesitas el código de alta generado desde Apps Script.':'Introduce tus credenciales para acceder al panel financiero.';
  }
+ function mergeLocalRemoteState(remote,local,preferLocal){
+  const remoteSettings=remote&&remote.settings&&typeof remote.settings==='object'?remote.settings:{};
+  const localSettings=local&&local.settings&&typeof local.settings==='object'?local.settings:{};
+  const remotePreferences=remote&&remote.preferences&&typeof remote.preferences==='object'?remote.preferences:{};
+  const localPreferences=local&&local.preferences&&typeof local.preferences==='object'?local.preferences:{};
+  const settings=preferLocal?Object.assign({},remoteSettings,localSettings):Object.assign({},localSettings,remoteSettings);
+  const preferences=preferLocal?Object.assign({},remotePreferences,localPreferences):Object.assign({},localPreferences,remotePreferences);
+  const byMonth={};
+  const addRows=(rows)=>{(Array.isArray(rows)?rows:[]).forEach(row=>{if(row&&/^\d{4}-(0[1-9]|1[0-2])$/.test(String(row.month||'')))byMonth[String(row.month)]=row})};
+  if(preferLocal){addRows(remote&&remote.history);addRows(local&&local.history)}
+  else{addRows(local&&local.history);addRows(remote&&remote.history)}
+  const history=Object.keys(byMonth).sort().map(month=>byMonth[month]);
+  return {settings:settings,preferences:preferences,history:history};
+ }
  async function activateSession(token,username){
   sessionToken=String(token||'');sessionStorage.setItem('nexusCompanyToken',sessionToken);
   let state;
-  try{state=await callBackend('loadFinancial',[sessionToken],26000);if(!state||state.ok!==true)throw new Error(state&&state.message?state.message:'No se recibió el estado financiero de Google Sheets.')}
+  try{state=await callBackend('loadFinancial',[sessionToken],30000);if(!state||state.ok!==true)throw new Error(state&&state.message?state.message:'No se recibió el estado financiero de Google Sheets.');}
   catch(err){sessionToken='';sessionStorage.removeItem('nexusCompanyToken');throw new Error('La autenticación respondió, pero no se pudo cargar Nexus Company DB. '+err.message)}
   const localSnapshot=currentLocalSnapshot();
-  const remoteHasHistory=Array.isArray(state.history)&&state.history.length>0;
-  const migrationDecision=localStorage.getItem(MIGRATION_DECISION_KEY);
-  // La decisión se guarda para que la pregunta no reaparezca en cada recarga.
-  if(!remoteHasHistory&&hasUsefulLocalData(localSnapshot)&&!migrationDecision){
-   const migrate=confirm('Este navegador contiene datos previos de Nexus Company y la hoja no tiene registros mensuales. ¿Deseas migrar esos datos a Nexus Company DB?');
-   if(migrate){
-    remoteReady=true;
-    await syncNexusFinancialState(true);
-    localStorage.setItem(MIGRATION_DECISION_KEY,'migrated');
-    state=await callBackend('loadFinancial',[sessionToken],26000);
-   }else{
-    localStorage.setItem(MIGRATION_DECISION_KEY,'skipped');
-    clearClientFinanceCache();applyRemoteState(state);
+  const remoteHistory=Array.isArray(state.history)?state.history:[];
+  const remoteSettings=state.settings&&typeof state.settings==='object'?state.settings:{};
+  const remotePreferences=state.preferences&&typeof state.preferences==='object'?state.preferences:{};
+  const remoteHasData=remoteHistory.length>0||Object.keys(remoteSettings).length>0||Object.keys(remotePreferences).length>0;
+  const localHasData=hasUsefulLocalData(localSnapshot);
+  const localPending=localStorage.getItem(MIGRATION_DECISION_KEY)==='pending';
+  // Los cambios locales recientes (marcados pending) prevalecen; en lo demás gana
+  // la base remota para las claves/meses coincidentes. Los meses solo locales se conservan.
+  const merged=mergeLocalRemoteState(state,localSnapshot,localPending||!remoteHasData);
+  const needsReconcile=localHasData&&(localPending||!remoteHasData||merged.history.length>remoteHistory.length);
+  applyRemoteState(merged);
+  remoteReady=true;
+  let syncPending=false;
+  if(needsReconcile){
+   localStorage.setItem(MIGRATION_DECISION_KEY,'pending');
+   try{
+    const saved=await syncNexusFinancialState(true);
+    if(!saved)throw new Error('El backend no confirmó el guardado.');
+    const refreshed=await callBackend('loadFinancial',[sessionToken],30000);
+    if(!refreshed||refreshed.ok!==true)throw new Error('No se pudo verificar la lectura posterior a la escritura.');
+    state=refreshed;
+    applyRemoteState(state);
+    localStorage.setItem(MIGRATION_DECISION_KEY,'saved');
+   }catch(err){
+    syncPending=true;
+    localStorage.setItem(MIGRATION_DECISION_KEY,'pending');
+    showSaveToast('No se confirmó la copia en Google Sheets. Tus datos se conservaron en este navegador y se volverán a intentar guardar. Detalle: '+String(err.message||err),'error');
+    setDbStatus('Datos locales · sincronización pendiente','error');
    }
   }else{
-   applyRemoteState(state);
+   localStorage.setItem(MIGRATION_DECISION_KEY,'saved');
   }
-  remoteReady=true;
   if(typeof loadSettings==='function')loadSettings();
   if(typeof updateMonthStatus==='function')updateMonthStatus();
   if(typeof compute==='function')compute();
   if(typeof renderHistory==='function')renderHistory();
   if(typeof renderPeriodDisplay==='function')renderPeriodDisplay();
-  // Conserva la sección abierta antes de recargar en lugar de forzar Resumen.
   if(typeof go==='function')go(currentView,{fromPop:true});
-  setDbStatus('Conectado · Nexus Company DB','connected');
-  setAuthMessage('Sesión iniciada.','success');
+  if(!syncPending)setDbStatus('Conectado · Nexus Company DB','connected');
+  setAuthMessage(syncPending?'Sesión iniciada; hay datos pendientes de sincronización.':'Sesión iniciada.','success');
   const input=document.getElementById('nexusLoginPassword');if(input)input.value='';
   document.body.classList.add('nexus-authenticated');
   endBootScreen();
   restoreSavedScroll();
+  if(syncPending)scheduleNexusSync(1500);
   return true;
  }
  async function startAuth(){
@@ -1352,8 +1427,9 @@ $('importBackupFile')?.addEventListener('change',async e=>{
   const token=sessionToken;
   remoteReady=false;sessionToken='';sessionStorage.removeItem('nexusCompanyToken');
   if(syncTimer){clearTimeout(syncTimer);syncTimer=null}
+  if(retryTimer){clearTimeout(retryTimer);retryTimer=null}
   try{if(token)await callBackend('logout',[token],12000)}catch(e){}
-  clearClientFinanceCache();document.body.classList.remove('nexus-authenticated');setDbStatus('Sesión cerrada','pending');switchToLogin(false);setAuthMessage('Sesión cerrada correctamente.');
+  document.body.classList.remove('nexus-authenticated');setDbStatus('Sesión cerrada · datos locales preservados','pending');switchToLogin(false);setAuthMessage('Sesión cerrada. Se conservaron los datos locales por seguridad ante una posible sincronización pendiente.');
  });
 
  // El transporte POST evita el iframe interno de HtmlService que bloqueaba postMessage.
