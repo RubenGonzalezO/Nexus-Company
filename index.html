@@ -442,7 +442,6 @@ body.nexus-authenticated #nexusLoginScreen{display:none!important}
   <p class="nexus-auth-foot">Acceso de propietario único. <strong>El registro público se deshabilita automáticamente después del alta inicial.</strong></p>
  </section>
 </div>
-<iframe id="nexusBridgeFrame" class="nexus-bridge-frame" title="Conexión segura con el servidor de datos" aria-hidden="true" tabindex="-1"></iframe>
 
 <div class="app">
 <aside class="sidebar">
@@ -1082,8 +1081,6 @@ $('importBackupFile')?.addEventListener('change',async e=>{
  const NEXUS_CHANNEL='NEXUS_COMPANY_BRIDGE_V1';
  // IMPORTANTE: luego de desplegar el proyecto NUEVO, pega aquí la URL /exec que Google te entregue.
  const NEXUS_WEB_APP_URL='https://script.google.com/macros/s/AKfycbyNWaYHK4QXUSYmBPAWPEMCn-Iy2fGc71sXTlSyd5SJxwe-fZqLos-jbXPiw1GmLX3DQQ/exec';
- const GITHUB_ORIGIN='https://rubengonzalezo.github.io';
- const frame=document.getElementById('nexusBridgeFrame');
  const loginForm=document.getElementById('nexusLoginForm');
  const setupForm=document.getElementById('nexusOwnerSetupForm');
  const authMessage=document.getElementById('nexusAuthMessage');
@@ -1091,7 +1088,7 @@ $('importBackupFile')?.addEventListener('change',async e=>{
  const authIntro=document.getElementById('nexusAuthIntro');
  const dbStatus=document.getElementById('nexusDbStatus');
  const dbStatusText=document.getElementById('nexusDbStatusText');
- let bridgeReady=false, pending=new Map(), readyWaiters=[], requestCounter=0, pingTimer=null;
+ let pending=new Map(), requestCounter=0;
  let sessionToken='', remoteReady=false, syncTimer=null, syncInFlight=null;
 
  function setAuthMessage(text,kind){
@@ -1104,59 +1101,51 @@ $('importBackupFile')?.addEventListener('change',async e=>{
   if(dbStatus){dbStatus.classList.toggle('is-connected',kind==='connected');dbStatus.classList.toggle('is-error',kind==='error')}
  }
  function isAllowedBridgeOrigin(origin){
-  try{const u=new URL(origin);return u.protocol==='https:'&&(u.hostname==='script.google.com'||u.hostname.endsWith('.googleusercontent.com'))}catch(e){return false}
+  try{const u=new URL(origin);return u.protocol==='https:'&&(u.hostname==='script.google.com'||u.hostname==='googleusercontent.com'||u.hostname.endsWith('.googleusercontent.com'))}catch(e){return false}
  }
- function markBridgeReady(){
-  if(bridgeReady)return;
-  bridgeReady=true;
-  if(pingTimer){clearInterval(pingTimer);pingTimer=null}
-  readyWaiters.splice(0).forEach(fn=>fn());
-  if(!document.body.classList.contains('nexus-authenticated'))setAuthMessage('Servidor disponible. Ingresa tus credenciales para continuar.','success');
- }
- function sendHello(){
-  try{if(frame&&frame.contentWindow)frame.contentWindow.postMessage({channel:NEXUS_CHANNEL,type:'HELLO'},'*')}catch(e){}
- }
- function startPings(){
-  if(pingTimer)clearInterval(pingTimer);
-  let tries=0;
-  sendHello();
-  pingTimer=setInterval(()=>{
-   if(bridgeReady){clearInterval(pingTimer);pingTimer=null;return}
-   tries++;sendHello();
-   if(tries>=24){clearInterval(pingTimer);pingTimer=null;if(!bridgeReady)setAuthMessage('No se pudo establecer el puente con Apps Script. Verifica que publicaste la nueva versión y que el acceso de la aplicación web permite abrir el puente. El formulario sigue disponible para reintentar.','error')}
-  },650);
+ function cleanRequest(entry){
+  if(!entry)return;
+  if(entry.timer)clearTimeout(entry.timer);
+  if(entry.form&&entry.form.isConnected)entry.form.remove();
+  if(entry.frame&&entry.frame.isConnected)entry.frame.remove();
  }
  window.addEventListener('message',function(event){
-  if(!frame||event.source!==frame.contentWindow||!isAllowedBridgeOrigin(event.origin))return;
+  if(!isAllowedBridgeOrigin(event.origin))return;
   const data=event.data;
-  if(!data||data.channel!==NEXUS_CHANNEL)return;
-  if(data.type==='READY'){markBridgeReady();return}
-  if(data.type==='RESPONSE'&&typeof data.id==='string'){
-   const waiter=pending.get(data.id);if(!waiter)return;
-   pending.delete(data.id);clearTimeout(waiter.timer);
-   if(data.ok)waiter.resolve(data.result);else waiter.reject(new Error(String(data.error||'El servidor rechazó la solicitud.')));
-  }
+  if(!data||data.channel!==NEXUS_CHANNEL||data.type!=='RESPONSE'||typeof data.id!=='string')return;
+  const waiter=pending.get(data.id);if(!waiter)return;
+  pending.delete(data.id);cleanRequest(waiter);
+  if(data.ok)waiter.resolve(data.result);
+  else waiter.reject(new Error(String(data.error||'La solicitud fue rechazada por Apps Script.')));
  });
- function waitForBridge(timeoutMs){
-  if(bridgeReady)return Promise.resolve();
+ function callBackend(action,args,timeoutMs){
   return new Promise((resolve,reject)=>{
-   let done=false;
-   const timer=setTimeout(()=>{if(done)return;done=true;readyWaiters=readyWaiters.filter(fn=>fn!==complete);reject(new Error('No se recibió respuesta del puente de Apps Script. Comprueba la URL /exec, los permisos y la implementación publicada.'))},timeoutMs||18000);
-   function complete(){if(done)return;done=true;clearTimeout(timer);resolve()}
-   readyWaiters.push(complete);sendHello();
+   if(!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(NEXUS_WEB_APP_URL)){
+    reject(new Error('La URL de implementación de Apps Script no está configurada.'));return;
+   }
+   const id='nc-'+Date.now().toString(36)+'-'+(++requestCounter).toString(36)+'-'+Math.random().toString(36).slice(2,12);
+   const frameName='nexus-request-'+id;
+   const requestFrame=document.createElement('iframe');
+   requestFrame.name=frameName;requestFrame.title='Solicitud segura a Nexus Company Backend';
+   requestFrame.setAttribute('aria-hidden','true');requestFrame.tabIndex=-1;
+   requestFrame.style.cssText='position:fixed;left:-10000px;top:-10000px;width:1px;height:1px;border:0;opacity:0;pointer-events:none';
+   const form=document.createElement('form');form.method='POST';form.action=NEXUS_WEB_APP_URL;form.target=frameName;form.enctype='application/x-www-form-urlencoded';form.acceptCharset='UTF-8';form.style.display='none';
+   const input=document.createElement('input');input.type='hidden';input.name='payload';
+   input.value=JSON.stringify({channel:NEXUS_CHANNEL,type:'CALL',id:id,action:String(action),args:Array.isArray(args)?args:[]});
+   form.appendChild(input);
+   const timeout=Number(timeoutMs)||26000;
+   const entry={resolve:resolve,reject:reject,frame:requestFrame,form:form,timer:null};
+   entry.timer=setTimeout(()=>{
+    if(!pending.has(id))return;
+    pending.delete(id);cleanRequest(entry);
+    reject(new Error('Apps Script no respondió a la operación "'+action+'" dentro del tiempo esperado. Comprueba que publicaste una nueva versión con doPost y que el acceso permite ejecutar la aplicación.'));
+   },timeout);
+   pending.set(id,entry);
+   document.body.appendChild(requestFrame);document.body.appendChild(form);
+   try{form.submit()}catch(error){pending.delete(id);cleanRequest(entry);reject(new Error('No se pudo enviar la solicitud POST a Apps Script: '+error.message))}
   });
  }
- function callBackend(action,args,timeoutMs){
-  return waitForBridge(timeoutMs||18000).then(()=>new Promise((resolve,reject)=>{
-   if(!frame||!frame.contentWindow){reject(new Error('No está disponible el marco de comunicación con Apps Script.'));return}
-   const id='nc-'+Date.now().toString(36)+'-'+(++requestCounter).toString(36)+'-'+Math.random().toString(36).slice(2,9);
-   const timer=setTimeout(()=>{pending.delete(id);reject(new Error('Apps Script no respondió a la operación "'+action+'" dentro del tiempo esperado. Revisa Ejecutaciones en Apps Script.'))},timeoutMs||22000);
-   pending.set(id,{resolve,reject,timer});
-   try{frame.contentWindow.postMessage({channel:NEXUS_CHANNEL,type:'CALL',id,action,args:Array.isArray(args)?args:[]},'*')}
-   catch(err){clearTimeout(timer);pending.delete(id);reject(new Error('No se pudo enviar la solicitud al puente: '+err.message))}
-  }));
- }
- function parseStored(key,fallback){try{const v=JSON.parse(localStorage.getItem(key)||'null');return v==null?fallback:v}catch(e){return fallback}}
+  function parseStored(key,fallback){try{const v=JSON.parse(localStorage.getItem(key)||'null');return v==null?fallback:v}catch(e){return fallback}}
  function getPreferences(){const result={};Object.keys(localStorage).filter(k=>/^miniEmpresa(Mode|Rate|Pct)_[A-Za-z0-9_-]{1,80}$/.test(k)).forEach(k=>result[k]=localStorage.getItem(k)||'');return result}
  function currentLocalSnapshot(){return {settings:parseStored('miniEmpresaSettingsV2',{}),preferences:getPreferences(),history:typeof getHistory==='function'?getHistory():parseStored('miniEmpresaHistoryV2',[])} }
  function hasUsefulLocalData(s){
@@ -1244,10 +1233,11 @@ $('importBackupFile')?.addEventListener('change',async e=>{
   // Si el backend confirma que ya hay propietario, cambiamos a inicio de sesión.
   switchToLogin(true);
   setAuthMessage('Formulario de alta disponible. Comprobando la conexión con el servidor…');
+  setDbStatus('Conectando con Nexus Company DB…','pending');
   const savedToken=sessionStorage.getItem('nexusCompanyToken');
   try{
-   await waitForBridge(20000);
-   const status=await callBackend('authStatus',[],20000);
+   const status=await callBackend('authStatus',[],30000);
+   setDbStatus('Conectado con el backend','connected');
    if(status&&status.configured){
     switchToLogin(false);
     if(savedToken){
@@ -1263,7 +1253,7 @@ $('importBackupFile')?.addEventListener('change',async e=>{
    // En una instalación nueva, no ocultar el formulario de alta si el puente tarda o no responde.
    // El backend sigue siendo quien valida el código y bloquea cualquier alta si ya hay propietario.
    switchToLogin(true);
-   setAuthMessage('No se pudo establecer conexión con Apps Script. El formulario sí está visible, pero no puede crear la cuenta hasta que el puente responda. Revisa la implementación publicada y su acceso. Detalle: '+err.message,'error');
+   setAuthMessage('No se recibió respuesta de Apps Script mediante POST. El formulario está visible, pero el registro necesita que publiques la nueva versión de Code.gs con doPost y acceso adecuado. Detalle: '+err.message,'error');
   }
  }
  loginForm.addEventListener('submit',async function(e){
@@ -1306,13 +1296,9 @@ $('importBackupFile')?.addEventListener('change',async e=>{
   clearClientFinanceCache();document.body.classList.remove('nexus-authenticated');setDbStatus('Sesión cerrada','pending');switchToLogin(false);setAuthMessage('Sesión cerrada correctamente.');
  });
 
- // Carga el puente solo cuando se ha pegado la URL de la implementación nueva.
+ // El transporte POST evita el iframe interno de HtmlService que bloqueaba postMessage.
  const nexusBackendUrlIsConfigured=/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(NEXUS_WEB_APP_URL);
- if(frame && nexusBackendUrlIsConfigured){
-  frame.addEventListener('load',startPings);
-  const separator=NEXUS_WEB_APP_URL.indexOf('?')>=0?'&':'?';
-  frame.src=NEXUS_WEB_APP_URL+separator+'bridge=1&v=4&ts='+Date.now();
-  startPings();
+ if(nexusBackendUrlIsConfigured){
   startAuth();
  }else{
   switchToLogin(true);
